@@ -59,12 +59,13 @@ Eth_phy_t::Eth_phy_t(uint8_t num):Ethernet_t(),Callback_Interface_t(),IRQ_LISTEN
 
 	Status = XEmacPs_CfgInitialize(&this->EmacPsInstance, Config, Config->BaseAddress);
 
-	#ifdef USE_CONSOLE
-	#ifdef EthM_console
-	if (Status != XST_SUCCESS) printf("Error in initialize Eth %i\n\r",num);
-	#endif
-	#endif
-
+	if (Status != XST_SUCCESS){
+		#ifdef USE_CONSOLE
+		#ifdef EthM_console
+		printf("Error in initialize Eth %i\n\r",num);
+		#endif
+		#endif
+	}
 }
 
 void Eth_phy_t::Initialize(void)
