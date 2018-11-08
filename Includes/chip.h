@@ -32,6 +32,9 @@ typedef char EthernetFrame[XEMACPS_MAX_VLAN_FRAME_SIZE] __attribute__ ((aligned(
 typedef bool (*Out_packet_callback_t)(EthernetFrame* Frame_ptr, uint16_t frame_size);
 #endif
 
+#define __disable_irq() Xil_ExceptionDisable()
+#define __enable_irq()	Xil_ExceptionEnable()
+
 #if !defined(MAX)
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif
