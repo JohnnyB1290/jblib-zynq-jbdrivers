@@ -116,11 +116,14 @@ void QSPI_Flash_t::Initialize(void)
 		QspiConfig = XQspiPs_LookupConfig(QSPI_DEVICE_ID);
 
 		Status = XQspiPs_CfgInitialize(&this->QspiInstance, QspiConfig, QspiConfig->BaseAddress);
-		#ifdef USE_CONSOLE
-		#ifdef QSPI_console
-		if (Status != XST_SUCCESS) printf("%s\r\n", "QSPI Flash Initialization Fail");
-		#endif
-		#endif
+
+		if (Status != XST_SUCCESS){
+			#ifdef USE_CONSOLE
+			#ifdef QSPI_console
+			printf("%s\r\n", "QSPI Flash Initialization Fail");
+			#endif
+			#endif
+		}
 
 		/*
 		 * Set the pre-scaler for QSPI clock
@@ -164,11 +167,13 @@ void QSPI_Flash_t::Initialize(void)
 
 		Status = FlashReadID(&this->QspiInstance);
 
-		#ifdef USE_CONSOLE
-		#ifdef QSPI_console
-		if (Status != XST_SUCCESS) xil_printf("%s\r\n", "QSPI Flash Read ID Fail");
-		#endif
-		#endif
+		if (Status != XST_SUCCESS){
+			#ifdef USE_CONSOLE
+			#ifdef QSPI_console
+			xil_printf("%s\r\n", "QSPI Flash Read ID Fail");
+			#endif
+			#endif
+		}
 
 		#ifdef USE_FS
 		if (Status == XST_SUCCESS) this->Disc_Stat &= ~STA_NOINIT;
