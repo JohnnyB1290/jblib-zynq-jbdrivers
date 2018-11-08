@@ -27,10 +27,8 @@ typedef void (*VOID_CALLBACK_t)(void);
 
 #define EMAC_ETH_MAX_FLEN XEMACPS_MAX_VLAN_FRAME_SIZE
 
-#ifdef USE_Ethernet
 typedef char EthernetFrame[XEMACPS_MAX_VLAN_FRAME_SIZE] __attribute__ ((aligned(64)));
 typedef bool (*Out_packet_callback_t)(EthernetFrame* Frame_ptr, uint16_t frame_size);
-#endif
 
 #define __disable_irq() Xil_ExceptionDisable()
 #define __enable_irq()	Xil_ExceptionEnable()
