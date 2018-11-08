@@ -90,7 +90,7 @@ int RingBuffer_InsertMult(RINGBUFF_T *RingBuff, const void *data, int num)
 
 	/* Calculate the segment lengths */
 	cnt1 = cnt2 = RingBuffer_GetFree(RingBuff);
-	if (RB_INDH(RingBuff) + cnt1 >= RingBuff->count)
+	if (RB_INDH(RingBuff) + cnt1 >= (uint32_t)RingBuff->count)
 		cnt1 = RingBuff->count - RB_INDH(RingBuff);
 	cnt2 -= cnt1;
 
@@ -142,7 +142,7 @@ int RingBuffer_PopMult(RINGBUFF_T *RingBuff, void *data, int num)
 
 	/* Calculate the segment lengths */
 	cnt1 = cnt2 = RingBuffer_GetCount(RingBuff);
-	if (RB_INDT(RingBuff) + cnt1 >= RingBuff->count)
+	if (RB_INDT(RingBuff) + cnt1 >= (uint32_t)RingBuff->count)
 		cnt1 = RingBuff->count - RB_INDT(RingBuff);
 	cnt2 -= cnt1;
 
@@ -175,7 +175,7 @@ int RingBuffer_Find(RINGBUFF_T *RingBuff, void* data,uint32_t index)
 	if (RingBuffer_IsEmpty(RingBuff))
 		return 0;
 
-	if(index >= RingBuffer_GetCount(RingBuff)) return 0;
+	if(index >= (uint32_t)RingBuffer_GetCount(RingBuff)) return 0;
 
 	ptr += (temp_tail & (RingBuff->count - 1)) * RingBuff->itemSz;
 	memcpy(data,ptr,1);
@@ -193,12 +193,12 @@ int RingBuffer_FindMult(RINGBUFF_T *RingBuff, void* data, int num, uint32_t star
 	if (RingBuffer_IsEmpty(RingBuff))
 		return 0;
 
-	if(start_index >= RingBuffer_GetCount(RingBuff)) return 0;
+	if(start_index >= (uint32_t)RingBuffer_GetCount(RingBuff)) return 0;
 
 
 	/* Calculate the segment lengths */
 	cnt1 = cnt2 = RingBuffer_GetCount(RingBuff) - start_index;
-	if ((temp_tail & (RingBuff->count - 1)) + cnt1 >= RingBuff->count)
+	if ((temp_tail & (RingBuff->count - 1)) + cnt1 >= (uint32_t)RingBuff->count)
 		cnt1 = RingBuff->count - (temp_tail & (RingBuff->count - 1));
 	cnt2 -= cnt1;
 

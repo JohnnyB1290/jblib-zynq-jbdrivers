@@ -426,11 +426,13 @@ uint8_t Eth_phy_t::Tx(void)
 	Status = XEmacPs_BdRingAlloc(&(XEmacPs_GetTxRing(&this->EmacPsInstance)),1,
 			(XEmacPs_Bd**)&(this->TxqQueue.BdTxPtr[bd_index]));
 
-	#ifdef USE_CONSOLE
-	#ifdef EthM_console
-	if (Status != XST_SUCCESS) printf("Error allocating TxBD\n\r");
-	#endif
-	#endif
+	if (Status != XST_SUCCESS){
+		#ifdef USE_CONSOLE
+		#ifdef EthM_console
+		printf("Error allocating TxBD\n\r");
+		#endif
+		#endif
+	}
 
 	XEmacPs_BdSetAddressTx(this->TxqQueue.BdTxPtr[bd_index], (UINTPTR)&(this->TxqQueue.Frames[q_index]));
 	XEmacPs_BdSetLength(this->TxqQueue.BdTxPtr[bd_index], this->TxqQueue.frame_size[q_index]);
@@ -439,11 +441,13 @@ uint8_t Eth_phy_t::Tx(void)
 
 	Status = XEmacPs_BdRingToHw(&(XEmacPs_GetTxRing(&this->EmacPsInstance)),1, this->TxqQueue.BdTxPtr[bd_index]);
 
-	#ifdef USE_CONSOLE
-	#ifdef EthM_console
-	if (Status != XST_SUCCESS) printf("Error committing TxBD to HW\n\r");
-	#endif
-	#endif
+	if (Status != XST_SUCCESS){
+		#ifdef USE_CONSOLE
+		#ifdef EthM_console
+		printf("Error committing TxBD to HW\n\r");
+		#endif
+		#endif
+	}
 
 	Xil_DCacheFlushRange((UINTPTR)this->TxqQueue.BdTxPtr[bd_index], 64);
 
@@ -550,11 +554,14 @@ void Eth_phy_t::RecvHandler(void *CallbackData)
 			Status = XEmacPs_BdRingFree(&(XEmacPs_GetRxRing(&Eth_phy_ptr->EmacPsInstance)),1,
 					Eth_phy_ptr->RxQueue.BdRxPtr[index]);
 
-			#ifdef USE_CONSOLE
-			#ifdef EthM_console
-			if (Status != XST_SUCCESS) printf("Error freeing up RxBDs\n\r");
-			#endif
-			#endif
+			if (Status != XST_SUCCESS){
+				#ifdef USE_CONSOLE
+				#ifdef EthM_console
+				printf("Error freeing up RxBDs\n\r");
+				#endif
+				#endif
+			}
+
 			index = (Eth_phy_ptr->RxQueue.bw + Eth_phy_ptr->RXBD_CNT)%GEM_RX_QUEUE_LENGTH;
 
 			Eth_phy_ptr->RxQueue.bw++;
@@ -565,21 +572,25 @@ void Eth_phy_t::RecvHandler(void *CallbackData)
 			Status = XEmacPs_BdRingAlloc(&(XEmacPs_GetRxRing(&Eth_phy_ptr->EmacPsInstance)),1,
 					(XEmacPs_Bd **)&(Eth_phy_ptr->RxQueue.BdRxPtr[index]));
 
-			#ifdef USE_CONSOLE
-			#ifdef EthM_console
-			if (Status != XST_SUCCESS) printf("Error allocating RxBD, Eth\n\r");
-			#endif
-			#endif
+			if (Status != XST_SUCCESS){
+				#ifdef USE_CONSOLE
+				#ifdef EthM_console
+				printf("Error allocating RxBD, Eth\n\r");
+				#endif
+				#endif
+			}
 
 			XEmacPs_BdSetAddressRx(Eth_phy_ptr->RxQueue.BdRxPtr[index], (UINTPTR)&(Eth_phy_ptr->RxQueue.Frames[index]));
 
 			Status = XEmacPs_BdRingToHw(&(XEmacPs_GetRxRing(&Eth_phy_ptr->EmacPsInstance)),1, Eth_phy_ptr->RxQueue.BdRxPtr[index]);
 
-			#ifdef USE_CONSOLE
-			#ifdef EthM_console
-			if (Status != XST_SUCCESS) printf("Error committing RxBD to HW, Eth\n\r");
-			#endif
-			#endif
+			if (Status != XST_SUCCESS){
+				#ifdef USE_CONSOLE
+				#ifdef EthM_console
+				printf("Error committing RxBD to HW, Eth\n\r");
+				#endif
+				#endif
+			}
 		}
 		else break;
 	}
