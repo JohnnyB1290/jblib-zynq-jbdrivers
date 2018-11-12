@@ -49,6 +49,7 @@ void Axi_Timer_void_t::Timer_Handler(void *CallBackRef, u8 Sub_Tmr_Number)
 	}
 }
 
+
 void Axi_Timer_void_t::Initialize(uint32_t us)
 {
 	volatile uint32_t cmp_value;
@@ -112,6 +113,6 @@ void Axi_Timer_void_t::Deinitialize(void)
 
 void Axi_Timer_void_t::IRQ(uint32_t IRQ_num)
 {
-	XTmrCtr_InterruptHandler(this);
+	XTmrCtr_InterruptHandler(&this->TimerInstance);
 }
 
