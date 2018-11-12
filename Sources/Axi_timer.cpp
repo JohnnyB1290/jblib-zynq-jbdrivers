@@ -49,7 +49,6 @@ void Axi_Timer_void_t::Timer_Handler(void *CallBackRef, u8 Sub_Tmr_Number)
 	}
 }
 
-
 void Axi_Timer_void_t::Initialize(uint32_t us)
 {
 	volatile uint32_t cmp_value;
