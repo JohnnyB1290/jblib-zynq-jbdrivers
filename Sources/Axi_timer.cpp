@@ -13,6 +13,7 @@ Axi_Timer_void_t* Axi_Timer_void_t::Axi_Timer_void_ptrs[Axi_timer_num] = Axi_Tim
 uint32_t Axi_Timer_void_t::Timers_INTR_ID[Axi_timer_num] = Axi_tmr_intr_IDs_def;
 uint32_t Axi_Timer_void_t::Timers_INTR_prioryty[Axi_timer_num] = Axi_tmr_int_prioryties_def;
 uint32_t Axi_Timer_void_t::Timers_dev_IDs[Axi_timer_num] = Axi_tmr_dev_IDs_def;
+uint32_t Axi_Timer_void_t::Timers_Clocks[Axi_timer_num] = Axi_tmr_clocks_def;
 
 
 Axi_Timer_void_t* Axi_Timer_void_t::getAxi_Timer_void(uint8_t Timer_num)
@@ -56,7 +57,7 @@ void Axi_Timer_void_t::Initialize(uint32_t us)
 	XTmrCtr_SetHandler(&this->TimerInstance, Axi_Timer_void_t::Timer_Handler,this);
 	XTmrCtr_SetOptions(&this->TimerInstance, 0, XTC_INT_MODE_OPTION | XTC_AUTO_RELOAD_OPTION|XTC_DOWN_COUNT_OPTION);
 
-	cmp_value = (Axi_TMR_CLK_Hz / 1000000) * us;
+	cmp_value = (Axi_Timer_void_t::Timers_Clocks[this->Timer_num] / 1000000) * us;
 
 	XTmrCtr_SetResetValue(&this->TimerInstance, 0, cmp_value-2);
 }

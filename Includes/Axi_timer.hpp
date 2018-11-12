@@ -34,6 +34,8 @@ private:
 	static uint32_t Timers_INTR_ID[Axi_timer_num];
 	static uint32_t Timers_INTR_prioryty[Axi_timer_num];
 	static uint32_t Timers_dev_IDs[Axi_timer_num];
+	static uint32_t Timers_Clocks[Axi_timer_num];
+
 
 	Axi_Timer_void_t(uint8_t Timer_num);
 	XTmrCtr TimerInstance;
