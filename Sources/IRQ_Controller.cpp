@@ -196,3 +196,11 @@ void IRQ_CONTROLLER_t::HANDLE_FIQ_INT(void *data)
 	while(1);
 //	CONTROLLER_t::get_CONTROLLER()->Jump_to_Addr(WDT_RESET_ADDR);
 }
+
+void IRQ_CONTROLLER_t::sendSoftwareIntToCPU0(uint32_t interruptId){
+	XScuGic_SoftwareIntr(&this->IController_instance, interruptId, XSCUGIC_SPI_CPU0_MASK);
+}
+
+void IRQ_CONTROLLER_t::sendSoftwareIntToCPU1(uint32_t interruptId){
+	XScuGic_SoftwareIntr(&this->IController_instance, interruptId, XSCUGIC_SPI_CPU1_MASK);
+}

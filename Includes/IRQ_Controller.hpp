@@ -32,6 +32,8 @@ public:
 	void SetPriority(u32 InterruptID, u8 Priority);
     void Add_Peripheral_IRQ_Listener(IRQ_LISTENER_t* listener, uint32_t IRQ_num);
     void Delete_Peripheral_IRQ_Listener(IRQ_LISTENER_t* listener);
+    void sendSoftwareIntToCPU0(uint32_t interruptId);
+    void sendSoftwareIntToCPU1(uint32_t interruptId);
 private:
     static IRQ_CONTROLLER_t* IRQ_Controller_ptr;
     IRQ_LISTENER_t* Peripheral_IRQ_LISTENERS[Peripheral_Listeners_num];
