@@ -20,6 +20,16 @@ extern "C"
 #include "PCB_defines.hpp"
 #include "ring_buffer.h"
 
+
+// S=b1(Sharable) TEX=b001 AP=b11(Access permission Full Access),
+// Domain=b1111, C=b0, B=b0
+#define setNonCached1Mb(addr) Xil_SetTlbAttributes(addr,NORM_NONCACHE)
+
+#define setNonCachedBlock(addr, sizeInMb) for(uint32_t i = 0; i < sizeInMb; i++) \
+											Xil_SetTlbAttributes(addr + i*0x00100000,NORM_NONCACHE);
+
+#define sev() __asm__("sev")
+
 #define LongToBin(n) (((n >> 21 ) & 0x80) | ((n >> 18 ) & 0x40) | ((n >> 15 ) & 0x20) | ((n >> 12 ) & 0x10) | ((n >> 9 ) & 0x08) | ((n >> 6 ) & 0x04) | ((n >> 3 ) & 0x02) |  ((n ) & 0x01) )
 #define Bin(n) LongToBin(0x##n##l)
 
