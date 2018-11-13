@@ -179,13 +179,13 @@ void Eth_phy_t::Initialize(void)
 	 */
 	if(this->num == 0)
 	{
-		Xil_SetTlbAttributes(RX_BD_LIST_START_ADDRESS_0, 0xc02);
-		Xil_SetTlbAttributes(TX_BD_LIST_START_ADDRESS_0, 0xc02);
+		Xil_SetTlbAttributes(RX_BD_LIST_START_ADDRESS_0, STRONG_ORDERED);
+		Xil_SetTlbAttributes(TX_BD_LIST_START_ADDRESS_0, STRONG_ORDERED);
 	}
 	if(this->num == 1)
 	{
-		Xil_SetTlbAttributes(RX_BD_LIST_START_ADDRESS_1, 0xc02);
-		Xil_SetTlbAttributes(TX_BD_LIST_START_ADDRESS_1, 0xc02);
+		Xil_SetTlbAttributes(RX_BD_LIST_START_ADDRESS_1, STRONG_ORDERED);
+		Xil_SetTlbAttributes(TX_BD_LIST_START_ADDRESS_1, STRONG_ORDERED);
 	}
 
 	XEmacPs_BdClear(&BdTemplate);
