@@ -8,7 +8,7 @@
 #include "IPC.hpp"
 #include "string.h"
 #include "CONTROLLER.hpp"
-#include "xil_mmu.h"
+#include "xil_cache_l.h"
 
 typedef struct ipc_gbl_val_struct
 {
@@ -33,9 +33,6 @@ IPC_proto_t* IPC_proto_t::get_IPC_proto(uint8_t gate)
 
 IPC_proto_t::IPC_proto_t(uint8_t gate):IRQ_LISTENER_t()
 {
-	setNonCached1Mb(IPC_SHARED_MEM_CORE_A9_0_ADDR);
-	setNonCached1Mb(IPC_SHARED_MEM_CORE_A9_1_ADDR);
-
 #ifdef CORE_A9_0
 	this->qwr = (ipc_queue_t*)IPC_SHARED_MEM_CORE_A9_0_ADDR;
 	this->qrd = (ipc_queue_t*)IPC_SHARED_MEM_CORE_A9_1_ADDR;
@@ -116,13 +113,13 @@ void IPC_proto_t::IRQ(uint32_t IRQ_num)
 
 		if (msg.id < IPC_MAX_IDS)
 		{
-			if(msg.id == IPC_ID_GBLUPDATE)
+			if(msg.id == IPC_MSG_ID_GBLUPDATE)
 			{
 				gv = (ipc_gbl_val_t*)msg.data;
 				if (gv->index < IPC_MAX_GBLVAL) this->gblval[gv->index] = gv->val;
-				this->MsgPush(IPC_ID_FREEMEM, msg.data);
+				this->MsgPush(IPC_MSG_ID_FREEMEM, msg.data);
 			}
-			if(msg.id == IPC_ID_FREEMEM) free_s((void *)msg.data);
+			if(msg.id == IPC_MSG_ID_FREEMEM) free_s((void *)msg.data);
 
 			for(int i = 0; i < IPC_Listeners_num; i++)
 			{
@@ -146,6 +143,7 @@ int IPC_proto_t::Qwr_msg_count(void)
 int IPC_proto_t::MsgPush(uint32_t id, uint32_t data)
 {
 	ipcex_msg_t msg;
+
 #ifdef CORE_A9_0
 	msg.sender = CORE_A9_0_GATE;
 #endif
@@ -179,21 +177,17 @@ int IPC_proto_t::SetGblVal(int index, uint32_t val)
 
 	gv->val = this->gblval[index] = val;
 	gv->index = index;
-	if(this->MsgPush(IPC_ID_GBLUPDATE, (uint32_t) gv) != QUEUE_INSERT) {
+	if(this->MsgPush(IPC_MSG_ID_GBLUPDATE, (uint32_t) gv) != QUEUE_INSERT) {
 		free_s(gv);
 		return 1;
 	}
 	return 0;
 }
 
-
 uint32_t IPC_proto_t::GetGblVal(int index)
 {
-	if (index < IPC_MAX_GBLVAL)
-	{
-		return this->gblval[index];
-	}
-	return 0;
+	if (index < IPC_MAX_GBLVAL) return this->gblval[index];
+	else return 0;
 }
 
 void IPC_proto_t::sendInt(void){
