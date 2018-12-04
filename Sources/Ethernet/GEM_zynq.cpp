@@ -8,25 +8,51 @@
 #include "Ethernet/GEM_zynq.hpp"
 #include "CONTROLLER.hpp"
 
-Eth_phy_t* Eth_phy_t::Eth_phy_ptr[Num_of_GEM] = {(Eth_phy_t*)NULL,(Eth_phy_t*)NULL};
-uint8_t Eth_phy_t::EmacPsMAC[Num_of_GEM][6] = {GEM_0_Default_MAC ,GEM_1_Default_MAC };
-uint8_t Eth_phy_t::Autoneg_lock = 0;
+Eth_phy_t* Eth_phy_t::Eth_phy_ptr[NUM_OF_GEM] = {(Eth_phy_t*)NULL,(Eth_phy_t*)NULL};
+uint8_t Eth_phy_t::EmacPsMAC[NUM_OF_GEM][6] = {GEM_0_Default_MAC ,GEM_1_Default_MAC };
 
-
-Eth_phy_t* Eth_phy_t::get_Ethernet_phy(uint8_t num)
+Eth_phy_t* Eth_phy_t::get_Ethernet_phy(uint8_t num, MDIO_t* mdioPtr, uint32_t phyAddr, GMIIRGMIIAdapter_t* adapterPtr)
 {
-	if(num>=Num_of_GEM) return (Eth_phy_t*)NULL;
-	if(Eth_phy_t::Eth_phy_ptr[num] == (Eth_phy_t*)NULL) Eth_phy_t::Eth_phy_ptr[num] = new  Eth_phy_t(num);
+	if(num >= NUM_OF_GEM) return (Eth_phy_t*)NULL;
+	if(Eth_phy_t::Eth_phy_ptr[num] == (Eth_phy_t*)NULL)
+		Eth_phy_t::Eth_phy_ptr[num] = new Eth_phy_t(num, mdioPtr, phyAddr, adapterPtr);
 	return Eth_phy_t::Eth_phy_ptr[num];
 }
 
-Eth_phy_t::Eth_phy_t(uint8_t num):Ethernet_t(),Callback_Interface_t(),IRQ_LISTENER_t()
+Eth_phy_t* Eth_phy_t::get_Ethernet_phy(uint8_t num, MDIO_t* mdioPtr, uint32_t phyAddr)
+{
+	if(num >= NUM_OF_GEM) return (Eth_phy_t*)NULL;
+	if(Eth_phy_t::Eth_phy_ptr[num] == (Eth_phy_t*)NULL)
+		Eth_phy_t::Eth_phy_ptr[num] = new Eth_phy_t(num, mdioPtr, phyAddr, NULL);
+	return Eth_phy_t::Eth_phy_ptr[num];
+}
+
+Eth_phy_t* Eth_phy_t::get_Ethernet_phy(uint8_t num, MDIO_t* mdioPtr)
+{
+	if(num >= NUM_OF_GEM) return (Eth_phy_t*)NULL;
+	if(Eth_phy_t::Eth_phy_ptr[num] == (Eth_phy_t*)NULL)
+		Eth_phy_t::Eth_phy_ptr[num] = new Eth_phy_t(num, mdioPtr, num, NULL);
+	return Eth_phy_t::Eth_phy_ptr[num];
+}
+
+Eth_phy_t* Eth_phy_t::get_Ethernet_phy(uint8_t num)
+{
+	if(num >= NUM_OF_GEM) return (Eth_phy_t*)NULL;
+	if(Eth_phy_t::Eth_phy_ptr[num] == (Eth_phy_t*)NULL)
+		Eth_phy_t::Eth_phy_ptr[num] = new Eth_phy_t(num, MDIO_t::getMdio(num), num, NULL);
+	return Eth_phy_t::Eth_phy_ptr[num];
+}
+
+Eth_phy_t::Eth_phy_t(uint8_t num, MDIO_t* mdioPtr, uint32_t phyAddr, GMIIRGMIIAdapter_t* adapterPtr):
+				Ethernet_t(),Callback_Interface_t(),IRQ_LISTENER_t()
 {
 	XEmacPs_Config* Config = NULL;
 	LONG Status;
 
-
 	this->num = num;
+	this->mdioPtr = mdioPtr;
+	this->phyAddr = phyAddr;
+	this->adapterPtr = adapterPtr;
 	this->initialize_success = 0;
 	this->Autonegotiation_succ_flag = 0;
 	this->Tx_Unlocked = 1;
@@ -38,6 +64,8 @@ Eth_phy_t::Eth_phy_t(uint8_t num):Ethernet_t(),Callback_Interface_t(),IRQ_LISTEN
 	this->TxqQueue.bd_bw = 0;
 	this->TxqQueue.queue_br = 0;
 	this->TxqQueue.queue_bw = 0;
+
+	this->ethernetPhyPtr = new EthernetPhy_t(this->mdioPtr, this->phyAddr);
 
 	switch(num)
 	{
@@ -62,10 +90,13 @@ Eth_phy_t::Eth_phy_t(uint8_t num):Ethernet_t(),Callback_Interface_t(),IRQ_LISTEN
 	if (Status != XST_SUCCESS){
 		#ifdef USE_CONSOLE
 		#ifdef EthM_console
-		printf("Error in initialize Eth %i\n\r",num);
+		printf("Error in CfgInitialize emacps Eth %i\n\r",num);
 		#endif
 		#endif
 	}
+
+	XEmacPs_SetMdioDivisor(&this->EmacPsInstance, MDC_DIV_224);
+	sleep(1);
 }
 
 void Eth_phy_t::Initialize(void)
@@ -73,8 +104,7 @@ void Eth_phy_t::Initialize(void)
 	LONG Status;
 	XEmacPs_Bd BdTemplate;
 	u16 i=0;
-//	u32 Reg;
-//	uint32_t link_speed;
+	uint32_t link_speed;
 
 	#ifdef USE_CONSOLE
 	#ifdef EthM_console
@@ -101,41 +131,64 @@ void Eth_phy_t::Initialize(void)
 	if (Status != XST_SUCCESS) printf("Error in set TX_CHKSUM_ENABLE\n\r");
 	#endif
 	#endif
-//	Status = XEmacPs_SetOptions(&this->EmacPsInstance, XEMACPS_FCS_INSERT_OPTION);
-//	#ifdef USE_CONSOLE
-//	#ifdef EthM_console
-//	if (Status != XST_SUCCESS) printf("Error in set FCS INSERT OPT\n\r");
-//	#endif
-//	#endif
 
-	XEmacPs_SetMdioDivisor(&this->EmacPsInstance, MDC_DIV_224);
-	sleep(1);
+	uint32_t tempSpeed = 0;
+	GMIIrgmiiSpeedModeControl_enum adapterSpeed;
 
-//	wdt_ptr->Stop();
-//	this->Autoneg_lock = 1;
-//	link_speed = phy_setup (&this->EmacPsInstance,&this->EmacPsInstance, this->num);
-//	if(link_speed != XST_FAILURE)
-//	{
-//		XEmacPs_SetOperatingSpeed(&this->EmacPsInstance, link_speed);
-//		this->Autonegotiation_succ_flag = 1;
-//	}
-//	else
-//	{
-//		configure_IEEE_phy_speed(&this->EmacPsInstance, this->num, 100);
-//		SetUpSLCRDivisors(this->EmacPsInstance.Config.BaseAddress, 100);
-//		XEmacPs_SetOperatingSpeed(&this->EmacPsInstance, 100);
-//	}
-//	Autoneg_lock = 0;
-//	wdt_ptr->Start();
+	switch(this->speed){
+		case speed_10Mbit:
+			tempSpeed = 10;
+			adapterSpeed = ADAPTER_SPEED_MODE_10;
+			break;
+		case speed_100Mbit:
+			tempSpeed = 100;
+			adapterSpeed = ADAPTER_SPEED_MODE_100;
+			break;
+		case speed_1000Mbit:
+			tempSpeed = 1000;
+			adapterSpeed = ADAPTER_SPEED_MODE_1000;
+			break;
+		case speed_autoneg:
+			tempSpeed = this->ethernetPhyPtr->getSpeed();
+			if(tempSpeed != XST_FAILURE){
+				#ifdef USE_CONSOLE
+				#ifdef EthM_console
+				printf("Speed after autoneg = %i\n\r",tempSpeed);
+				#endif
+				#endif
 
-////	wdt_ptr->Stop();
-	this->Autoneg_lock = 1;
+				switch(tempSpeed){
+					case 10:
+						adapterSpeed = ADAPTER_SPEED_MODE_10;
+						break;
+					case 100:
+						adapterSpeed = ADAPTER_SPEED_MODE_100;
+						break;
+					case 1000:
+						adapterSpeed = ADAPTER_SPEED_MODE_100;
+						break;
+					default:
+						adapterSpeed = ADAPTER_SPEED_MODE_100;
+						break;
+				}
+				this->Autonegotiation_succ_flag = 1;
+			}
+			else{
+				tempSpeed = 100;
+				adapterSpeed = ADAPTER_SPEED_MODE_100;
+				CONTROLLER_t::get_CONTROLLER()->Add_main_procedure(this);
+			}
+			break;
+		default:
+			tempSpeed = 100;
+			adapterSpeed = ADAPTER_SPEED_MODE_100;
+			break;
+	}
 
-	configure_IEEE_phy_speed(&this->EmacPsInstance, num, 100);
-	SetUpSLCRDivisors(this->EmacPsInstance.Config.BaseAddress, 100);
-	XEmacPs_SetOperatingSpeed(&this->EmacPsInstance, 100);
-	this->Autoneg_lock = 0;
-//	wdt_ptr->Start();
+	if(this->speed != speed_autoneg) this->ethernetPhyPtr->configureSpeed(tempSpeed);
+	EthernetPhy_t::setUpSLCRDivisors(this->EmacPsInstance.Config.BaseAddress, tempSpeed);
+	if(this->adapterPtr != NULL) this->adapterPtr->setSpeed(adapterSpeed);
+	XEmacPs_SetOperatingSpeed(&this->EmacPsInstance, tempSpeed);
 
 	Status = XEmacPs_SetMacAddress(&this->EmacPsInstance, (void*)Eth_phy_t::EmacPsMAC[this->num], 1);
 	#ifdef USE_CONSOLE
@@ -245,9 +298,7 @@ void Eth_phy_t::Initialize(void)
 
 	XEmacPs_Start(&this->EmacPsInstance);
 
-
 	this->initialize_success = 1;
-
 
 	#ifdef USE_CONSOLE
 	#ifdef EthM_console
@@ -255,7 +306,6 @@ void Eth_phy_t::Initialize(void)
 	if(num == 1) printf("Eth_1 Successfull_ini\n\r");
 	#endif
 	#endif
-
 }
 
 void Eth_phy_t::Start(void)
@@ -266,6 +316,7 @@ void Eth_phy_t::Start(void)
 void Eth_phy_t::ResetDevice(void)
 {
 	this->initialize_success = 0;
+	this->Autonegotiation_succ_flag = 0;
 	XEmacPs_Reset(&this->EmacPsInstance);
 	this->Initialize();
 }
@@ -599,7 +650,50 @@ void Eth_phy_t::RecvHandler(void *CallbackData)
 
 void Eth_phy_t::void_callback(void* Intf_ptr, void* parameters)
 {
+	this->Event_negotiation_call();
+	if(this->Autonegotiation_succ_flag)
+		CONTROLLER_t::get_CONTROLLER()->Delete_main_procedure(this);
+}
 
+void Eth_phy_t::Event_negotiation_call(void)
+{
+	static bool link = false;
+	uint32_t tempSpeed = 0;
+	GMIIrgmiiSpeedModeControl_enum adapterSpeed;
+
+	if(this->initialize_success && (this->Autonegotiation_succ_flag == 0)){
+		if(this->Check_link()){
+			tempSpeed = this->ethernetPhyPtr->getSpeed();
+			if(tempSpeed != XST_FAILURE){
+				#ifdef USE_CONSOLE
+				#ifdef EthM_console
+				printf("Speed after autoneg = %i\n\r",tempSpeed);
+				#endif
+				#endif
+
+				switch(tempSpeed){
+					case 10:
+						adapterSpeed = ADAPTER_SPEED_MODE_10;
+						break;
+					case 100:
+						adapterSpeed = ADAPTER_SPEED_MODE_100;
+						break;
+					case 1000:
+						adapterSpeed = ADAPTER_SPEED_MODE_100;
+						break;
+					default:
+						adapterSpeed = ADAPTER_SPEED_MODE_100;
+						break;
+				}
+
+				EthernetPhy_t::setUpSLCRDivisors(this->EmacPsInstance.Config.BaseAddress, tempSpeed);
+				if(this->adapterPtr != NULL) this->adapterPtr->setSpeed(adapterSpeed);
+				XEmacPs_SetOperatingSpeed(&this->EmacPsInstance, tempSpeed);
+
+				this->Autonegotiation_succ_flag = 1;
+			}
+		}
+	}
 }
 
 uint8_t Eth_phy_t::Check_Tx_bd_ready(void)
@@ -653,53 +747,8 @@ uint8_t Eth_phy_t::Check_Tx_bd_ready(void)
 
 bool Eth_phy_t::Check_link(void)
 {
-	u16 PhyReg17;
-	u32 Status;
-	//Status = XEmacPs_PhyRead(&this->EmacPsInstance, this->num, 17, &PhyReg17);
-	Status = XEmacPs_PhyRead(&Eth_phy_t::Eth_phy_ptr[0]->EmacPsInstance, this->num, 17, &PhyReg17);
-	if(Status == XST_SUCCESS)
-	{
-		PhyReg17 &= 0x400;
-		if(PhyReg17) return true;
-		else return false;
-	}
+	if((this->mdioPtr->phyRead(this->phyAddr, 17)) & 0x400) return true;
 	else return false;
-
-}
-
-
-void Eth_phy_t::Event_negotiation_call(void)
-{
-	#ifdef Autonegotiation
-	uint32_t link_speed;
-	#endif
-
-	if(this->initialize_success != 0)
-	{
-		if(this->Autonegotiation_succ_flag == 0)
-		{
-			if(this->Check_link())
-			{
-				if(this->Autoneg_lock == 0)
-				{
-					#ifdef Autonegotiation
-					wdt_ptr->Stop();
-					if(j == BSPN_eth_num) ErrorMes("Start Autonegotiation BSPN Eth!");
-					if(j == SKZI_eth_num) ErrorMes("Start Autonegotiation SKZI Eth!");
-					link_speed = phy_setup (&EmacPsInstance[0],&EmacPsInstance[j], j);
-					if(link_speed != XST_FAILURE)
-					{
-						XEmacPs_SetOperatingSpeed(&EmacPsInstance[j], link_speed);
-						Autonegotiation_succ_flag[j] = 1;
-					}
-					wdt_ptr->Start();
-					#else
-					this->Autonegotiation_succ_flag = 1;
-					#endif
-				}
-			}
-		}
-	}
 }
 
 void Eth_phy_t::Push_TX_queue(void)

@@ -5,40 +5,35 @@
  *      Author: Stalker1290
  */
 
-#ifndef SRC_GEM_ZYNQ_HPP_
-#define SRC_GEM_ZYNQ_HPP_
+#ifndef GEM_ZYNQ_HPP_
+#define GEM_ZYNQ_HPP_
 
 #include "chip.h"
 #include "Defines.h"
 #include "Void_Ethernet.hpp"
 #include "IRQ_Controller.hpp"
 #include "Common_interfaces.hpp"
-#include "xemacpsif_physpeed.h"
 #include "xemacps.h"		/* defines XEmacPs API */
 #include "sleep.h"
-#include "xpseudo_asm.h"
 #include "xil_mmu.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
-#include "xil_types.h"
-#include "xil_assert.h"
-#include "xil_io.h"
 #include "xil_cache.h"
+#include "mdio.hpp"
+#include "Ethernet/GMII_RGMII_adapter.hpp"
+#include "Ethernet/EthernetPhy.hpp"
 
-#define Num_of_GEM 2
-
-#define EMACPS_SLCR_DIV_MASK		0xFC0FC0FF
+#define NUM_OF_GEM 2
 /*
  * SLCR setting
  */
-#define SLCR_LOCK_ADDR			(XPS_SYS_CTRL_BASEADDR + 0x4)
-#define SLCR_UNLOCK_ADDR		(XPS_SYS_CTRL_BASEADDR + 0x8)
+#define SLCR_LOCK_ADDR				(XPS_SYS_CTRL_BASEADDR + 0x4)
+#define SLCR_UNLOCK_ADDR			(XPS_SYS_CTRL_BASEADDR + 0x8)
 #define SLCR_GEM0_CLK_CTRL_ADDR		(XPS_SYS_CTRL_BASEADDR + 0x140)
 #define SLCR_GEM1_CLK_CTRL_ADDR		(XPS_SYS_CTRL_BASEADDR + 0x144)
 
-
-#define SLCR_LOCK_KEY_VALUE		0x767B
+#define SLCR_LOCK_KEY_VALUE			0x767B
 #define SLCR_UNLOCK_KEY_VALUE		0xDF0D
 #define SLCR_ADDR_GEM_RST_CTRL		(XPS_SYS_CTRL_BASEADDR + 0x214)
 
@@ -86,6 +81,9 @@ typedef struct TX_Queue_struct
 class Eth_phy_t:public Ethernet_t,Callback_Interface_t,protected IRQ_LISTENER_t
 {
 public:
+	static Eth_phy_t* get_Ethernet_phy(uint8_t num, MDIO_t* mdioPtr, uint32_t phyAddr, GMIIRGMIIAdapter_t* adapterPtr);
+	static Eth_phy_t* get_Ethernet_phy(uint8_t num, MDIO_t* mdioPtr, uint32_t phyAddr);
+	static Eth_phy_t* get_Ethernet_phy(uint8_t num, MDIO_t* mdioPtr);
 	static Eth_phy_t* get_Ethernet_phy(uint8_t num);
 	virtual void Initialize(void);
 	virtual void Start(void);
@@ -99,7 +97,7 @@ public:
 #endif
 	virtual uint16_t Pull_out_RX_Frame(EthernetFrame* Frame_ptr);
 private:
-	Eth_phy_t(uint8_t num);
+	Eth_phy_t(uint8_t num, MDIO_t* mdioPtr, uint32_t phyAddr, GMIIRGMIIAdapter_t* adapterPtr);
 	bool Check_link(void);
 	uint8_t Check_Tx_bd_ready(void);
 	uint8_t Tx(void);
@@ -112,11 +110,9 @@ private:
 	static void SendHandler(void *CallbackData);
 	static void RecvHandler(void *CallbackData);
 
+	static Eth_phy_t* Eth_phy_ptr[NUM_OF_GEM];
 
-	static Eth_phy_t* Eth_phy_ptr[Num_of_GEM];
-
-	static uint8_t EmacPsMAC[Num_of_GEM][6];
-	static uint8_t Autoneg_lock;
+	static uint8_t EmacPsMAC[NUM_OF_GEM][6];
 
 	uint8_t num;
 	uint8_t initialize_success;
@@ -129,7 +125,11 @@ private:
 	uint8_t Tx_Unlocked;
 	uint8_t Adapter_name[9];
 	Ethernet_speed_t speed;
+	MDIO_t* mdioPtr;
+	GMIIRGMIIAdapter_t* adapterPtr;
+	uint32_t phyAddr;
+	EthernetPhy_t* ethernetPhyPtr;
 };
 
 
-#endif /* SRC_GEM_ZYNQ_HPP_ */
+#endif /* GEM_ZYNQ_HPP_ */
