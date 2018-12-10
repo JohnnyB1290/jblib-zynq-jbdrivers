@@ -382,6 +382,7 @@ void Eth_phy_t::Add_to_TX_queue(EthernetFrame* mes,uint16_t m_size)
 	uint16_t q_index;
 	uint16_t count;
 
+	__disable_irq();
 	if(this->Tx_Unlocked)
 	{
 		count = (this->TxqQueue.queue_bw >= this->TxqQueue.queue_br ?
@@ -406,6 +407,7 @@ void Eth_phy_t::Add_to_TX_queue(EthernetFrame* mes,uint16_t m_size)
 		if(this->TxqQueue.queue_bw == GEM_TX_QUEUE_LENGTH) this->TxqQueue.queue_bw = 0;
 	}
 	this->Push_TX_queue();
+	__enable_irq();
 }
 
 #ifdef USE_LWIP
@@ -420,6 +422,7 @@ void Eth_phy_t::Add_to_TX_queue(struct pbuf* p)
 	m_size = p->tot_len;
 	if(m_size == 0) return;
 
+	__disable_irq();
 	if(this->Tx_Unlocked)
 	{
 		count = (this->TxqQueue.queue_bw >= this->TxqQueue.queue_br ?
@@ -457,6 +460,7 @@ void Eth_phy_t::Add_to_TX_queue(struct pbuf* p)
 		if(this->TxqQueue.queue_bw == GEM_TX_QUEUE_LENGTH) this->TxqQueue.queue_bw = 0;
 	}
 	this->Push_TX_queue();
+	__enable_irq();
 }
 #endif
 
@@ -534,12 +538,11 @@ void Eth_phy_t::IRQ(uint32_t IRQ_num)
 
 void Eth_phy_t::ErrorHandler(void *CallbackData, u8 Direction, u32 ErrorWord)
 {
-
-	printf("ErrorHandler\n\r");
 #ifdef USE_CONSOLE
 #ifdef EthM_console
 	Eth_phy_t* Eth_phy_ptr = (Eth_phy_t*)CallbackData;
 
+	printf("ErrorHandler\n\r");
 	if(Eth_phy_ptr->num == 0) printf("Ethernet_0: ");
 	if(Eth_phy_ptr->num == 1) printf("Ethernet_1: ");
 
