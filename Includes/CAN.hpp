@@ -40,7 +40,7 @@ typedef struct CanFrame_struct{
 class CAN_t:public IRQ_LISTENER_t{
 public:
 	static CAN_t* getCan(uint8_t num);
-	void initialize(uint32_t speedKBs);
+	void initialize(uint32_t speedBs);
 	void deinitialize(void);
 	void pushToTxQuery(uint32_t mesId, uint8_t* dataPtr, uint8_t dataSize);
 	void pushToTxQuery(uint32_t mesId, uint8_t* dataPtr, uint8_t dataSize, bool extId);
@@ -56,7 +56,7 @@ private:
 	static XCanPs canInstanceXil[CAN_NUM_DEF];
 
 	CAN_t(uint8_t num);
-	void setTimingFields(uint32_t speedKBs);
+	void setTimingFields(uint32_t speedBs);
 	void errorHandler(uint32_t errorStatus);
 	void eventHandler(uint32_t eventIntr);
 	void recvHandler(void);
@@ -71,7 +71,7 @@ private:
 	uint8_t syncJumpWidth;
 	uint8_t timeSegment2;
 	uint8_t timeSegment1;
-	uint32_t speedKBs;
+	uint32_t speedBs;
 };
 
 

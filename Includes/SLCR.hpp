@@ -34,6 +34,8 @@
 #define SLCR_A9_CPU_RST_CTRL_ADDR		(XPS_SYS_CTRL_BASEADDR + 0x244) /* CPU Software Reset Control */
 #define SLCR_REBOOT_STATUS_ADDR			(XPS_SYS_CTRL_BASEADDR + 0x258) /* PS Reboot Status */
 
+#define SLCR_CAN_CLK_CTRL_ADDR			(XPS_SYS_CTRL_BASEADDR + 0x15C) /* CAN Ref Clock Control  */
+
 #define SLCR_LOCK_KEY_VALUE				0x767B
 #define SLCR_UNLOCK_KEY_VALUE			0xDF0D
 
