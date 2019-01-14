@@ -26,8 +26,9 @@ Axi_Timer_void_t* Axi_Timer_void_t::getAxi_Timer_void(uint8_t Timer_num)
 Axi_Timer_void_t::Axi_Timer_void_t(uint8_t Timer_num):VOID_TIMER_t()
 {
 	this->Timer_num = Timer_num;
-	this->callback = (VOID_CALLBACK_t)NULL;
 	this->callback_intrf_ptr = (Callback_Interface_t*)NULL;
+	this->uSecTicks = Axi_Timer_void_t::Timers_Clocks[this->Timer_num] / 1000000;
+	this->cmp_value = 0;
 
 	XTmrCtr_Initialize(&this->TimerInstance, Axi_Timer_void_t::Timers_dev_IDs[this->Timer_num]);
 
@@ -43,22 +44,18 @@ void Axi_Timer_void_t::Timer_Handler(void *CallBackRef, u8 Sub_Tmr_Number)
 	Axi_Timer_void_t* Void_TMR_ptr = (Axi_Timer_void_t*)CallBackRef;
 	if(Sub_Tmr_Number == 0)
 	{
-		if(Void_TMR_ptr->callback != (VOID_CALLBACK_t)NULL) Void_TMR_ptr->callback();
-		else if(Void_TMR_ptr->callback_intrf_ptr != (Callback_Interface_t*)NULL)
+		if(Void_TMR_ptr->callback_intrf_ptr != (Callback_Interface_t*)NULL)
 			Void_TMR_ptr->callback_intrf_ptr->void_callback(CallBackRef, NULL);
 	}
 }
 
 void Axi_Timer_void_t::Initialize(uint32_t us)
 {
-	volatile uint32_t cmp_value;
-
 	XTmrCtr_SetHandler(&this->TimerInstance, Axi_Timer_void_t::Timer_Handler,this);
 	XTmrCtr_SetOptions(&this->TimerInstance, 0, XTC_INT_MODE_OPTION | XTC_AUTO_RELOAD_OPTION|XTC_DOWN_COUNT_OPTION);
+	this->cmp_value = this->uSecTicks * us;
 
-	cmp_value = (Axi_Timer_void_t::Timers_Clocks[this->Timer_num] / 1000000) * us;
-
-	XTmrCtr_SetResetValue(&this->TimerInstance, 0, cmp_value-2);
+	XTmrCtr_SetResetValue(&this->TimerInstance, 0, this->cmp_value-2);
 }
 
 void Axi_Timer_void_t::Start(void)
@@ -81,14 +78,14 @@ uint32_t Axi_Timer_void_t::GetCounter(void)
 	return XTmrCtr_GetValue(&this->TimerInstance, 0);
 }
 
+uint32_t Axi_Timer_void_t::GetUsecCounter(void){
+	uint32_t value = XTmrCtr_GetValue(&this->TimerInstance, 0);
+	return (this->cmp_value - value)/this->uSecTicks;
+}
+
 void Axi_Timer_void_t::SetCounter(uint32_t count)
 {
 	XTmrCtr_WriteReg(this->TimerInstance.Config.BaseAddress, 0, XTC_TCR_OFFSET, count);
-}
-
-void Axi_Timer_void_t::AddCall(VOID_CALLBACK_t IntCallback)
-{
-	if(this->callback == (VOID_CALLBACK_t)NULL) this->callback = IntCallback;
 }
 
 void Axi_Timer_void_t::AddCall(Callback_Interface_t* IntCallback)
@@ -98,7 +95,6 @@ void Axi_Timer_void_t::AddCall(Callback_Interface_t* IntCallback)
 
 void Axi_Timer_void_t::DeleteCall(void)
 {
-	this->callback = (VOID_CALLBACK_t)NULL;
 	this->callback_intrf_ptr = (Callback_Interface_t*)NULL;
 }
 
@@ -106,7 +102,6 @@ void Axi_Timer_void_t::Deinitialize(void)
 {
 	this->Stop();
 	IRQ_CONTROLLER_t::getIRQController()->Delete_Peripheral_IRQ_Listener(this);
-	this->callback = (VOID_CALLBACK_t)NULL;
 	this->callback_intrf_ptr = (Callback_Interface_t*)NULL;
 }
 

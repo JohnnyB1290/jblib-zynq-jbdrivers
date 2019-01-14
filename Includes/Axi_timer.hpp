@@ -21,8 +21,8 @@ public:
 	virtual void Stop(void);
 	virtual void Reset(void);
 	virtual uint32_t GetCounter(void);
+	virtual uint32_t GetUsecCounter(void);
 	virtual void SetCounter(uint32_t count);
-	virtual void AddCall(VOID_CALLBACK_t IntCallback);
 	virtual void AddCall(Callback_Interface_t* IntCallback);
 	virtual void DeleteCall(void);
 	virtual void Deinitialize(void);
@@ -36,12 +36,12 @@ private:
 	static uint32_t Timers_dev_IDs[Axi_timer_num];
 	static uint32_t Timers_Clocks[Axi_timer_num];
 
-
 	Axi_Timer_void_t(uint8_t Timer_num);
 	XTmrCtr TimerInstance;
-	VOID_CALLBACK_t callback;
 	Callback_Interface_t* callback_intrf_ptr;
 	uint8_t Timer_num;
+	uint32_t uSecTicks;
+	uint32_t cmp_value;
 };
 
 
