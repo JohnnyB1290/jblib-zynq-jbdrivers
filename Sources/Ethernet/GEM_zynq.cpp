@@ -9,7 +9,7 @@
 #include "CONTROLLER.hpp"
 
 Eth_phy_t* Eth_phy_t::Eth_phy_ptr[NUM_OF_GEM] = {(Eth_phy_t*)NULL,(Eth_phy_t*)NULL};
-uint8_t Eth_phy_t::EmacPsMAC[NUM_OF_GEM][6] = {GEM_0_Default_MAC ,GEM_1_Default_MAC };
+uint8_t Eth_phy_t::EmacPsMAC[NUM_OF_GEM][6];
 
 Eth_phy_t* Eth_phy_t::get_Ethernet_phy(uint8_t num, MDIO_t* mdioPtr, uint32_t phyAddr, GMIIRGMIIAdapter_t* adapterPtr)
 {
@@ -49,6 +49,13 @@ Eth_phy_t::Eth_phy_t(uint8_t num, MDIO_t* mdioPtr, uint32_t phyAddr, GMIIRGMIIAd
 	XEmacPs_Config* Config = NULL;
 	LONG Status;
 
+	Eth_phy_t::EmacPsMAC[num][0] = 0x08;
+	Eth_phy_t::EmacPsMAC[num][1] = 0x12;
+	Eth_phy_t::EmacPsMAC[num][2] = (std::rand())&0xff;
+	Eth_phy_t::EmacPsMAC[num][3] = (std::rand())&0xff;
+	Eth_phy_t::EmacPsMAC[num][4] = (std::rand())&0xff;
+	Eth_phy_t::EmacPsMAC[num][5] = (std::rand())&0xff;
+
 	this->num = num;
 	this->mdioPtr = mdioPtr;
 	this->phyAddr = phyAddr;
@@ -74,14 +81,14 @@ Eth_phy_t::Eth_phy_t(uint8_t num, MDIO_t* mdioPtr, uint32_t phyAddr, GMIIRGMIIAd
 		this->TX_free_line = GEM_TX_free_line_0;
 		this->RXBD_CNT = GEM_RXBD_CNT_0;
 		Config = XEmacPs_LookupConfig(EMACPS_0_DEVICE_ID);
-		this->speed = GEM_0_Default_speed;
+		this->speed = speed_100Mbit;
 		break;
 	case 1:
 		memcpy(this->Adapter_name, "Eth_phy1",9);
 		this->TX_free_line = GEM_TX_free_line_1;
 		this->RXBD_CNT = GEM_RXBD_CNT_1;
 		Config = XEmacPs_LookupConfig(EMACPS_1_DEVICE_ID);
-		this->speed = GEM_1_Default_speed;
+		this->speed = speed_100Mbit;
 		break;
 	}
 
@@ -306,6 +313,13 @@ void Eth_phy_t::Initialize(void)
 	if(num == 1) printf("Eth_1 Successfull_ini\n\r");
 	#endif
 	#endif
+
+	this->txFramesCnt = 0;
+	this->txBytesCnt = 0;
+	this->rxFramesCnt = 0;
+	this->rxBytesCnt = 0;
+	this->errorsCnt = 0;
+
 }
 
 void Eth_phy_t::Start(void)
@@ -538,10 +552,10 @@ void Eth_phy_t::IRQ(uint32_t IRQ_num)
 
 void Eth_phy_t::ErrorHandler(void *CallbackData, u8 Direction, u32 ErrorWord)
 {
+	Eth_phy_t* Eth_phy_ptr = (Eth_phy_t*)CallbackData;
+	Eth_phy_ptr->errorsCnt++;
 #ifdef USE_CONSOLE
 #ifdef EthM_console
-	Eth_phy_t* Eth_phy_ptr = (Eth_phy_t*)CallbackData;
-
 	printf("ErrorHandler\n\r");
 	if(Eth_phy_ptr->num == 0) printf("Ethernet_0: ");
 	if(Eth_phy_ptr->num == 1) printf("Ethernet_1: ");
@@ -614,7 +628,11 @@ void Eth_phy_t::RecvHandler(void *CallbackData)
 				printf("Error freeing up RxBDs\n\r");
 				#endif
 				#endif
+				Eth_phy_ptr->errorsCnt++;
 			}
+
+			Eth_phy_ptr->rxFramesCnt++;
+			Eth_phy_ptr->rxBytesCnt += Eth_phy_ptr->RxQueue.frame_size[index];
 
 			index = (Eth_phy_ptr->RxQueue.bw + Eth_phy_ptr->RXBD_CNT)%GEM_RX_QUEUE_LENGTH;
 
@@ -632,6 +650,7 @@ void Eth_phy_t::RecvHandler(void *CallbackData)
 				printf("Error allocating RxBD, Eth\n\r");
 				#endif
 				#endif
+				Eth_phy_ptr->errorsCnt++;
 			}
 
 			XEmacPs_BdSetAddressRx(Eth_phy_ptr->RxQueue.BdRxPtr[index], (UINTPTR)&(Eth_phy_ptr->RxQueue.Frames[index]));
@@ -644,6 +663,7 @@ void Eth_phy_t::RecvHandler(void *CallbackData)
 				printf("Error committing RxBD to HW, Eth\n\r");
 				#endif
 				#endif
+				Eth_phy_ptr->errorsCnt++;
 			}
 		}
 		else break;
@@ -729,6 +749,7 @@ uint8_t Eth_phy_t::Check_Tx_bd_ready(void)
 					printf("Error freeing up TxBDs\n\r");
 					#endif
 					#endif
+					this->errorsCnt++;
 					break;
 				}
 				this->TxqQueue.bd_br = this->TxqQueue.bd_br+1;
@@ -764,6 +785,8 @@ void Eth_phy_t::Push_TX_queue(void)
 
 	if((this->Tx()) && count)
 	{
+		this->txFramesCnt++;
+		this->txBytesCnt += this->TxqQueue.frame_size[this->TxqQueue.queue_br];
 		this->TxqQueue.queue_br++;
 		if(this->TxqQueue.queue_br == GEM_TX_QUEUE_LENGTH) this->TxqQueue.queue_br = 0;
 	}
