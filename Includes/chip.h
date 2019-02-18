@@ -20,6 +20,7 @@ extern "C"
 #include "PCB_defines.hpp"
 #include "ring_buffer.h"
 
+#define IS_POWER_OF_TWO(x) (x && !(x & (x-1)))
 
 // S=b1(Sharable) TEX=b001 AP=b11(Access permission Full Access),
 // Domain=b1111, C=b0, B=b0
