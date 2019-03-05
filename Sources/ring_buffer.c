@@ -178,7 +178,7 @@ int RingBuffer_Find(RINGBUFF_T *RingBuff, void* data,uint32_t index)
 	if(index >= (uint32_t)RingBuffer_GetCount(RingBuff)) return 0;
 
 	ptr += (temp_tail & (RingBuff->count - 1)) * RingBuff->itemSz;
-	memcpy(data,ptr,1);
+	memcpy(data,ptr,RingBuff->itemSz);
 
 	return 1;
 }
