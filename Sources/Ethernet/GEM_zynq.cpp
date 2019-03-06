@@ -680,7 +680,6 @@ void Eth_phy_t::void_callback(void* Intf_ptr, void* parameters)
 
 void Eth_phy_t::Event_negotiation_call(void)
 {
-	static bool link = false;
 	uint32_t tempSpeed = 0;
 	GMIIrgmiiSpeedModeControl_enum adapterSpeed;
 
