@@ -1,96 +1,86 @@
-/*
- * NVMParameters.hpp
+/**
+ * @file
+ * @brief Non Volatile Memory Parameters Description
  *
- *  Created on: 11 сент. 2018 г.
- *      Author: Stalker1290
+ *
+ * @note
+ * Copyright © 2019 Evgeniy Ivanov. Contacts: <strelok1290@gmail.com>
+ * All rights reserved.
+ * @note
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * @note
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @note
+ * This file is a part of JB_Lib.
  */
 
 #ifndef NVMPARAMETERS_HPP_
 #define NVMPARAMETERS_HPP_
 
-#include "chip.h"
-#include "Common_interfaces.hpp"
+#include "jb_common.h"
+#include "INvmParameters.hpp"
 
-#define NVM_PARAMETERS_MAGIC 					0xAFDE
-#define NVM_PARAMETERS_CELL_DESCRIPTION_SIZE	32
-#define NVM_PARAMETERS_CELL_DATA_SIZE			32
-
-#pragma pack(push, 1)
-
-typedef struct NVMParamsHeader_struct{
-	uint16_t magic;
-	uint16_t crc;
-	uint8_t size; //number of parameters
-	uint8_t reserved[3];
-}NVMParamsHeader_t;
+namespace jblib
+{
+namespace jbdrivers
+{
+using namespace jbkernel;
 
 
-typedef struct NVMParamsCell_struct{
-	uint8_t type;
-	uint8_t descriptionSize;
-	uint8_t dataSize;
-	uint8_t uid;
-	uint8_t groupId;
-	uint8_t reserved[3];
-	char description[NVM_PARAMETERS_CELL_DESCRIPTION_SIZE];
-	uint8_t data[NVM_PARAMETERS_CELL_DATA_SIZE];
-}NVMParamsCell_t;
-
-#pragma pack(pop)
-
-#define PARAMS_CELL_TYPE_ARRAY_bm 			(1<<7) //1 - data is array
-#define PARAMS_CELL_TYPE_HEX_bm 			(1<<6) //1 - show data as hex, 0 - show data in dec
-#define PARAMS_CELL_TYPE_NOT_DISPLAY_bm 	(1<<5) //0 - display in WebIface, 1 - not display
-
-typedef enum{
-	nvmParamTypeU8 = 0,
-	nvmParamTypeU16 = 1,
-	nvmParamTypeU32 = 2,
-	nvmParamTypeString = 3,
-	nvmParamTypeDouble = 4,
-	nvmParamTypeI8 = 5,
-	nvmParamTypeI16 = 6,
-	nvmParamTypeI32 = 7,
-}nmvParamsCellType_t;
-
-
-class NVMParameters_t{
+class NvmParameters : public INvmParameters
+{
 public:
-	static NVMParameters_t* getNVMParametersPtr(void);
-	NVMParamsCell_t* getParameter(char* paramDescription, uint8_t* buf, uint8_t bufSize);
-	NVMParamsCell_t* getParameter(char* paramDescription);
-	void setParameter(NVMParamsCell_t* paramsCellPtr);
-	void setParameter(uint8_t type, char* description, uint8_t* data, uint8_t dataSize);
-	void setParameter(uint8_t type, uint8_t uid, char* description, uint8_t* data, uint8_t dataSize);
-	void setParameter(uint8_t type, uint8_t uid, uint8_t groupId, char* description, uint8_t* data, uint8_t dataSize);
-	void deleteParameter(char* paramDescription);
-	void eraseAllParameters(void);
-	NVMParamsHeader_t* getHeaderPtr(void);
-	uint32_t getParametersSize(void);
-	void setAllParameters(void* ptr);
-	uint32_t getCompressedParametersSize(void);
-	uint32_t getCompressedParameters(uint8_t* buf);
-	void setChangeCallback(Callback_Interface_t* changeCall);
-	NVMParamsCell_t* getLastSetCellPtr(void);
+	static NvmParameters* getNvmParameters(void);
+	virtual NvmParametersCell_t* getParameter(char* description,
+			uint8_t* data, uint8_t dataSize);
+	virtual NvmParametersCell_t* getParameter(char* description);
+	virtual void setParameter(NvmParametersCell_t* cell);
+	virtual void setParameter(uint8_t type, char* description,
+			uint8_t* data, uint8_t dataSize);
+	virtual void setParameter(uint8_t type, uint8_t uid,
+			char* description, uint8_t* data, uint8_t dataSize);
+	virtual void setParameter(uint8_t type, uint8_t uid,
+			uint8_t groupId, char* description,
+			uint8_t* data, uint8_t dataSize);
+	virtual void deleteParameter(char* description);
+	virtual void eraseAllParameters(void);
+	virtual NvmParametersHeader_t* getHeader(void);
+	virtual uint32_t getParametersSize(void);
+	virtual void setAllParameters(void* ptr);
+	virtual uint32_t getCompressedParametersSize(void);
+	virtual uint32_t getCompressedParameters(uint8_t* data);
+	virtual void setChangeCallback(IVoidCallback* callback);
+	virtual NvmParametersCell_t* getLastSetCellPtr(void);
+
 private:
-	NVMParameters_t(void);
+	NvmParameters(void);
 	void copyToRam(void);
-	void saveToNVM(void);
+	void saveToNvm(void);
 
-	static NVMParameters_t* nvmParametersPtr;
-	static uint32_t baseAddr;
-	static NVMParamsHeader_t* paramsHeaderPtr;
-	static uint8_t paramsHeaderSize;
-	static uint8_t paramsCellSize;
-
-	static const uint32_t cellHeaderSize = sizeof(NVMParamsCell_t) -
+	static NvmParameters* nvmParameters_;
+	static uint32_t baseAddress_;
+	static NvmParametersHeader_t* parametersHeader_;
+	static const uint32_t parametersHeaderSize_ =
+			sizeof(NvmParametersHeader_t);
+	static const uint32_t parametersCellSize_ =
+			sizeof(NvmParametersCell_t);
+	static const uint32_t cellHeaderSize_ = sizeof(NvmParametersCell_t) -
 			NVM_PARAMETERS_CELL_DESCRIPTION_SIZE -
 			NVM_PARAMETERS_CELL_DATA_SIZE;
-
-	NVMParamsCell_t lastSetCell;
-	Callback_Interface_t* changeCall;
+	NvmParametersCell_t lastSetCell_;
+	IVoidCallback* changeCallback_ = NULL;
 };
 
-
+}
+}
 
 #endif /* NVMPARAMETERS_HPP_ */

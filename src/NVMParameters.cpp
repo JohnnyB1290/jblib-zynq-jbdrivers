@@ -1,257 +1,326 @@
-/*
- * NVMParameters.cpp
+/**
+ * @file
+ * @brief Non Volatile Memory Parameters Realization
  *
- *  Created on: 11 сент. 2018 г.
- *      Author: Stalker1290
+ *
+ * @note
+ * Copyright © 2019 Evgeniy Ivanov. Contacts: <strelok1290@gmail.com>
+ * All rights reserved.
+ * @note
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * @note
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @note
+ * This file is a part of JB_Lib.
  */
 
-#include "NVMParameters.hpp"
-#include "QSPI_Flash.hpp"
-#include "CRC.hpp"
-#include "string.h"
-#include "stdlib.h"
-#include "stdio.h"
-#include "xil_exception.h"
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
 
-NVMParameters_t* NVMParameters_t::nvmParametersPtr = (NVMParameters_t*)NULL;
-uint32_t NVMParameters_t::baseAddr = 0;
-NVMParamsHeader_t* NVMParameters_t::paramsHeaderPtr = NULL;
-uint8_t NVMParameters_t::paramsHeaderSize = sizeof(NVMParamsHeader_t);
-uint8_t NVMParameters_t::paramsCellSize = sizeof(NVMParamsCell_t);
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
-NVMParameters_t* NVMParameters_t::getNVMParametersPtr(void){
-	if(NVMParameters_t::nvmParametersPtr == (NVMParameters_t*)NULL)
-		NVMParameters_t::nvmParametersPtr = new NVMParameters_t();
-	return NVMParameters_t::nvmParametersPtr;
+#include "jb_common.h"
+#if JBDRIVERS_USE_QSPI_FLASH
+#include <string.h>
+#include <stdlib.h>
+#include "NvmParameters.hpp"
+#include "QspiFlash.hpp"
+#include "Crc.hpp"
+//#include "xil_exception.h"
+#if USE_CONSOLE
+#include <stdio.h>
+#endif
+
+namespace jblib
+{
+namespace jbdrivers
+{
+
+using namespace jbkernel;
+using namespace	jbutilities;
+
+
+NvmParameters* NvmParameters::nvmParameters_ = (NvmParameters*)NULL;
+uint32_t NvmParameters::baseAddress_ = 0;
+NvmParametersHeader_t* NvmParameters::parametersHeader_ = NULL;
+
+
+
+NvmParameters* NvmParameters::getNvmParameters(void)
+{
+	if(nvmParameters_ == (NvmParameters*)NULL)
+		nvmParameters_ = new NvmParameters();
+	return nvmParameters_;
 }
 
-NVMParameters_t::NVMParameters_t(void){
 
-	this->changeCall = (Callback_Interface_t*)NULL;
-	QSPI_Flash_t::Get_QSPI_flash()->Initialize();
 
-	NVMParameters_t::baseAddr = (uint32_t)malloc_s(QSPI_FLASH_NVM_PARAMS_SIZE);
-	if(!NVMParameters_t::baseAddr) return;
-	NVMParameters_t::paramsHeaderPtr = (NVMParamsHeader_t*)NVMParameters_t::baseAddr;
-
+NvmParameters::NvmParameters(void)
+{
+	QspiFlash::getQspiFlash()->initialize();
+	baseAddress_ = (uint32_t)malloc_s(NVM_PARAMETERS_SIZE);
+	if(baseAddress_ == 0)
+		return;
+	parametersHeader_ = (NvmParametersHeader_t*)baseAddress_;
 	this->copyToRam();
-
-	if(NVMParameters_t::paramsHeaderPtr->magic != NVM_PARAMETERS_MAGIC){
+	if(parametersHeader_->magic != NVM_PARAMETERS_MAGIC){
 		this->eraseAllParameters();
+		#if USE_CONSOLE
 		printf("NVM Parameters Error: invalid Magic!\r\n");
+		#endif
 		return;
 	}
-
-	if(NVMParameters_t::paramsHeaderPtr->size == 0) return;
-
-	uint16_t calcCrc = CRC_t::Crc16((uint8_t*)(NVMParameters_t::baseAddr + NVMParameters_t::paramsHeaderSize),
-			(NVMParameters_t::paramsHeaderPtr->size)*NVMParameters_t::paramsCellSize);
-
-	if(NVMParameters_t::paramsHeaderPtr->crc != calcCrc){
+	if(NvmParameters::parametersHeader_->size == 0)
+		return;
+	uint16_t calculatedCrc = Crc::crc16((uint8_t*)(baseAddress_ + parametersHeaderSize_),
+			(parametersHeader_->size) * parametersCellSize_);
+	if(NvmParameters::parametersHeader_->crc != calculatedCrc){
 		this->eraseAllParameters();
+		#if USE_CONSOLE
 		printf("NVM Parameters Error: invalid CRC!\r\n");
+		#endif
 	}
 }
 
-NVMParamsCell_t* NVMParameters_t::getParameter(char* paramDescription){
 
-	if(!NVMParameters_t::baseAddr) return (NVMParamsCell_t*)NULL;
-	if(NVMParameters_t::paramsHeaderPtr->size == 0) return (NVMParamsCell_t*)NULL;
 
-	NVMParamsCell_t* cellPtr = (NVMParamsCell_t*)(NVMParameters_t::baseAddr + NVMParameters_t::paramsHeaderSize);
-	for(uint8_t i = 0; i < NVMParameters_t::paramsHeaderPtr->size; i++){
-		if(strncmp(cellPtr->description, paramDescription, NVM_PARAMETERS_CELL_DESCRIPTION_SIZE) == 0){
-			return cellPtr;
-		}
-		cellPtr++;
+NvmParametersCell_t* NvmParameters::getParameter(char* description)
+{
+	if((baseAddress_ == 0) || (parametersHeader_->size == 0))
+		return (NvmParametersCell_t*)NULL;
+	NvmParametersCell_t* cell =
+			(NvmParametersCell_t*)(baseAddress_ + parametersHeaderSize_);
+	for(uint32_t i = 0; i < parametersHeader_->size; i++){
+		if(strncmp(cell->description, description, NVM_PARAMETERS_CELL_DESCRIPTION_SIZE) == 0)
+			return cell;
+		cell++;
 	}
-	return (NVMParamsCell_t*)NULL;
+	return (NvmParametersCell_t*)NULL;
 }
 
-NVMParamsCell_t* NVMParameters_t::getParameter(char* paramDescription, uint8_t* buf, uint8_t bufSize){
 
-	NVMParamsCell_t* cellPtr = this->getParameter(paramDescription);
 
-	if(cellPtr != NULL)
-		memcpy(buf, cellPtr->data, (cellPtr->dataSize <= bufSize) ? cellPtr->dataSize : bufSize);
+NvmParametersCell_t* NvmParameters::getParameter(char* description,
+		uint8_t* data, uint8_t dataSize)
+{
 
-	return cellPtr;
+	NvmParametersCell_t* cell = this->getParameter(description);
+	if(cell != NULL)
+		memcpy(data, cell->data, (cell->dataSize <= dataSize) ? cell->dataSize : dataSize);
+	return cell;
 }
 
-void NVMParameters_t::setParameter(NVMParamsCell_t* paramsCellPtr){
-	if(!NVMParameters_t::baseAddr) return;
+
+
+void NvmParameters::setParameter(NvmParametersCell_t* cell)
+{
+	if(baseAddress_ == 0)
+		return;
 	__disable_irq();
-	NVMParamsHeader_t tempHeader;
-	memcpy(&tempHeader, NVMParameters_t::paramsHeaderPtr, NVMParameters_t::paramsHeaderSize);
-
-	NVMParamsCell_t* cellPtr = this->getParameter(paramsCellPtr->description);
-
-	if(cellPtr == (NVMParamsCell_t*)NULL){
-
-		cellPtr = (NVMParamsCell_t*)(NVMParameters_t::baseAddr + NVMParameters_t::paramsHeaderSize +
-				NVMParameters_t::paramsCellSize * NVMParameters_t::paramsHeaderPtr->size);
-
+	NvmParametersHeader_t tempHeader;
+	memcpy(&tempHeader, parametersHeader_, parametersHeaderSize_);
+	NvmParametersCell_t* tempCell = this->getParameter(cell->description);
+	if(tempCell == (NvmParametersCell_t*)NULL){
+		tempCell = (NvmParametersCell_t*)(baseAddress_ + parametersHeaderSize_ +
+				parametersCellSize_ * parametersHeader_->size);
 		tempHeader.size++;
 	}
 
-	memcpy((void*)cellPtr, (void*)paramsCellPtr, NVMParameters_t::paramsCellSize);
-
-	tempHeader.crc = CRC_t::Crc16((uint8_t*)(NVMParameters_t::baseAddr + NVMParameters_t::paramsHeaderSize),
-				tempHeader.size * NVMParameters_t::paramsCellSize);
-
-
-	memcpy((void*)NVMParameters_t::paramsHeaderPtr, (void*)&tempHeader, NVMParameters_t::paramsHeaderSize);
-
-	this->saveToNVM();
-
-	if(paramsCellPtr->uid != 0xFF)
-		memcpy((void*)&this->lastSetCell, (void*)paramsCellPtr, NVMParameters_t::paramsCellSize);
-
+	memcpy((void*)tempCell, (void*)cell, parametersCellSize_);
+	tempHeader.crc = Crc::crc16((uint8_t*)(baseAddress_ + parametersHeaderSize_),
+				tempHeader.size * parametersCellSize_);
+	memcpy((void*)parametersHeader_, (void*)&tempHeader, parametersHeaderSize_);
+	this->saveToNvm();
+	if(cell->uid != 0xFF)
+		memcpy((void*)&this->lastSetCell_, (void*)cell, parametersCellSize_);
 	__enable_irq();
-
-	if((paramsCellPtr->uid != 0xFF) && (this->changeCall != (Callback_Interface_t*)NULL)){
-		uint32_t tempPtr = paramsCellPtr->uid;
-		this->changeCall->void_callback(this,(void*)tempPtr);
+	if((cell->uid != 0xFF) && (this->changeCallback_ != (IVoidCallback*)NULL)){
+		uint32_t tempPtr = cell->uid;
+		this->changeCallback_->voidCallback(this, (void*)tempPtr);
 	}
 }
 
-void NVMParameters_t::setParameter(uint8_t type, char* description, uint8_t* data, uint8_t dataSize){
 
+
+void NvmParameters::setParameter(uint8_t type, char* description,
+		uint8_t* data, uint8_t dataSize)
+{
 	this->setParameter(type, 0xFF, description, data, dataSize);
 }
 
-void NVMParameters_t::setParameter(uint8_t type, uint8_t uid, char* description, uint8_t* data, uint8_t dataSize){
+
+
+void NvmParameters::setParameter(uint8_t type, uint8_t uid,
+		char* description, uint8_t* data, uint8_t dataSize)
+{
 	this->setParameter(type, 0xFF, 0xFF, description, data, dataSize);
 }
 
-void NVMParameters_t::setParameter(uint8_t type, uint8_t uid, uint8_t groupId, char* description, uint8_t* data, uint8_t dataSize){
 
-	NVMParamsCell_t tempCell;
-	memset(&tempCell, 0, NVMParameters_t::paramsCellSize);
+
+void NvmParameters::setParameter(uint8_t type, uint8_t uid,
+		uint8_t groupId, char* description,
+		uint8_t* data, uint8_t dataSize)
+{
+	NvmParametersCell_t tempCell;
+	memset(&tempCell, 0, parametersCellSize_);
 
 	tempCell.uid = uid;
 	tempCell.groupId = groupId;
 	tempCell.type = type;
-	tempCell.dataSize = (NVM_PARAMETERS_CELL_DATA_SIZE <= dataSize) ? NVM_PARAMETERS_CELL_DATA_SIZE : dataSize;
+	tempCell.dataSize = (NVM_PARAMETERS_CELL_DATA_SIZE <= dataSize) ?
+			NVM_PARAMETERS_CELL_DATA_SIZE : dataSize;
 	strncpy(tempCell.description, description, NVM_PARAMETERS_CELL_DESCRIPTION_SIZE);
 	memcpy(tempCell.data, data, tempCell.dataSize);
 	tempCell.descriptionSize = strlen(tempCell.description);
-
 	this->setParameter(&tempCell);
 }
 
-void NVMParameters_t::deleteParameter(char* paramDescription){
 
-	if(!NVMParameters_t::baseAddr) return;
+
+void NvmParameters::deleteParameter(char* description)
+{
+	if((baseAddress_ == 0) || (parametersHeader_->size == 0))
+		return;
 	__disable_irq();
+	NvmParametersHeader_t tempHeader;
+	memcpy(&tempHeader, parametersHeader_, parametersHeaderSize_);
 
-	if(NVMParameters_t::paramsHeaderPtr->size == 0) return;
-
-	NVMParamsHeader_t tempHeader;
-	memcpy(&tempHeader, NVMParameters_t::paramsHeaderPtr, NVMParameters_t::paramsHeaderSize);
-
-	NVMParamsCell_t* cellPtr = this->getParameter(paramDescription);
-	if(cellPtr != (NVMParamsCell_t*)NULL){
-		uint32_t tailSize = ((uint32_t)cellPtr - NVMParameters_t::baseAddr -
-				NVMParameters_t::paramsHeaderSize) / NVMParameters_t::paramsCellSize;
-		tailSize = NVMParameters_t::paramsHeaderPtr->size - tailSize - 1;
-		tailSize = tailSize * NVMParameters_t::paramsCellSize;
-		memcpy((void*)cellPtr,(void*)((uint32_t)cellPtr + NVMParameters_t::paramsCellSize),tailSize);
+	NvmParametersCell_t* cell = this->getParameter(description);
+	if(cell != (NvmParametersCell_t*)NULL){
+		uint32_t tailSize = ((uint32_t)cell - baseAddress_ - parametersHeaderSize_) /
+				parametersCellSize_;
+		tailSize = parametersHeader_->size - tailSize - 1;
+		tailSize = tailSize * parametersCellSize_;
+		memcpy((void*)cell, (void*)((uint32_t)cell + parametersCellSize_),tailSize);
 	}
-
 	tempHeader.size--;
-	tempHeader.crc = CRC_t::Crc16((uint8_t*)(NVMParameters_t::baseAddr + NVMParameters_t::paramsHeaderSize),
-					tempHeader.size * NVMParameters_t::paramsCellSize);
-
-	memcpy((void*)NVMParameters_t::paramsHeaderPtr,(void*)&tempHeader, NVMParameters_t::paramsHeaderSize);
-
-	this->saveToNVM();
+	tempHeader.crc = Crc::crc16((uint8_t*)(baseAddress_ + parametersHeaderSize_),
+					tempHeader.size * parametersCellSize_);
+	memcpy((void*)parametersHeader_, (void*)&tempHeader, parametersHeaderSize_);
+	this->saveToNvm();
 	__enable_irq();
 }
 
-void NVMParameters_t::eraseAllParameters(void){
-	__disable_irq();
-	NVMParamsHeader_t tempHeader;
 
-	memset(&tempHeader, 0, NVMParameters_t::paramsHeaderSize);
+
+void NvmParameters::eraseAllParameters(void)
+{
+	__disable_irq();
+	NvmParametersHeader_t tempHeader;
+	memset(&tempHeader, 0, parametersHeaderSize_);
 	tempHeader.magic = NVM_PARAMETERS_MAGIC;
 	tempHeader.size = 0;
-	memcpy((void*)NVMParameters_t::paramsHeaderPtr,(void*)&tempHeader, NVMParameters_t::paramsHeaderSize);
-	this->saveToNVM();
+	memcpy((void*)parametersHeader_, (void*)&tempHeader, parametersHeaderSize_);
+	this->saveToNvm();
 	__enable_irq();
 }
 
-NVMParamsHeader_t* NVMParameters_t::getHeaderPtr(void){
-	return NVMParameters_t::paramsHeaderPtr;
+
+
+NvmParametersHeader_t* NvmParameters::getHeader(void)
+{
+	return parametersHeader_;
 }
 
-uint32_t NVMParameters_t::getParametersSize(void){
-	return (NVMParameters_t::paramsHeaderSize +
-			NVMParameters_t::paramsCellSize * NVMParameters_t::paramsHeaderPtr->size);
+
+
+uint32_t NvmParameters::getParametersSize(void)
+{
+	return (parametersHeaderSize_ + parametersCellSize_ * parametersHeader_->size);
 }
 
-void NVMParameters_t::setAllParameters(void* ptr){
+
+
+void NvmParameters::setAllParameters(void* ptr)
+{
 	__disable_irq();
-	memcpy((void*)NVMParameters_t::paramsHeaderPtr,
-			(void*)ptr,
-			NVMParameters_t::paramsCellSize * ((NVMParamsHeader_t*)ptr)->size);
-	this->saveToNVM();
+	memcpy((void*)parametersHeader_, (void*)ptr,
+			parametersCellSize_ * ((NvmParametersHeader_t*)ptr)->size);
+	this->saveToNvm();
 	__enable_irq();
 }
 
-uint32_t NVMParameters_t::getCompressedParametersSize(void){
 
-	uint32_t retSize = NVMParameters_t::paramsHeaderSize;
-	NVMParamsCell_t* cellPtr = (NVMParamsCell_t*)(NVMParameters_t::baseAddr + NVMParameters_t::paramsHeaderSize);
 
-	for(uint8_t i = 0; i < NVMParameters_t::paramsHeaderPtr->size; i++){
-		retSize += this->cellHeaderSize + cellPtr->descriptionSize + cellPtr->dataSize;
-		cellPtr++;
+uint32_t NvmParameters::getCompressedParametersSize(void)
+{
+	uint32_t retSize = parametersHeaderSize_;
+	NvmParametersCell_t* cell = (NvmParametersCell_t*)(baseAddress_ +
+			parametersHeaderSize_);
+	for(uint32_t i = 0; i < NvmParameters::parametersHeader_->size; i++){
+		retSize += this->cellHeaderSize_ + cell->descriptionSize + cell->dataSize;
+		cell++;
 	}
 	return retSize;
 }
 
-uint32_t NVMParameters_t::getCompressedParameters(uint8_t* buf){
 
-	uint32_t retSize = NVMParameters_t::paramsHeaderSize;
-	uint8_t* ptr = buf;
-	NVMParamsCell_t* cellPtr = (NVMParamsCell_t*)(NVMParameters_t::baseAddr + NVMParameters_t::paramsHeaderSize);
 
-	memcpy(ptr,(uint8_t*)NVMParameters_t::paramsHeaderPtr, NVMParameters_t::paramsHeaderSize);
-	ptr += NVMParameters_t::paramsHeaderSize;
+uint32_t NvmParameters::getCompressedParameters(uint8_t* data)
+{
+	uint32_t retSize = parametersHeaderSize_;
+	uint8_t* ptr = data;
+	NvmParametersCell_t* cell = (NvmParametersCell_t*)(baseAddress_ + parametersHeaderSize_);
 
-	for(uint8_t i = 0; i < NVMParameters_t::paramsHeaderPtr->size; i++){
+	memcpy(ptr, (uint8_t*)parametersHeader_, parametersHeaderSize_);
+	ptr += parametersHeaderSize_;
 
-		retSize += this->cellHeaderSize + cellPtr->descriptionSize + cellPtr->dataSize;
-		memcpy(ptr,(uint8_t*)cellPtr, this->cellHeaderSize + cellPtr->descriptionSize);
-		ptr += (this->cellHeaderSize + cellPtr->descriptionSize);
-		memcpy(ptr,
-				((uint8_t*)cellPtr) + this->cellHeaderSize + NVM_PARAMETERS_CELL_DESCRIPTION_SIZE,
-				cellPtr->dataSize);
-		ptr += cellPtr->dataSize;
-		cellPtr++;
+	for(uint32_t i = 0; i < parametersHeader_->size; i++){
+		retSize += this->cellHeaderSize_ + cell->descriptionSize + cell->dataSize;
+		memcpy(ptr, (uint8_t*)cell, this->cellHeaderSize_ + cell->descriptionSize);
+		ptr += (this->cellHeaderSize_ + cell->descriptionSize);
+		memcpy(ptr, ((uint8_t*)cell) + this->cellHeaderSize_ +
+				NVM_PARAMETERS_CELL_DESCRIPTION_SIZE, cell->dataSize);
+		ptr += cell->dataSize;
+		cell++;
 	}
 	return retSize;
 }
 
-NVMParamsCell_t* NVMParameters_t::getLastSetCellPtr(void){
-	return &this->lastSetCell;
+
+
+NvmParametersCell_t* NvmParameters::getLastSetCellPtr(void)
+{
+	return &this->lastSetCell_;
 }
 
-void NVMParameters_t::setChangeCallback(Callback_Interface_t* changeCall){
-	this->changeCall = changeCall;
+
+
+void NvmParameters::setChangeCallback(IVoidCallback* callback)
+{
+	this->changeCallback_ = callback;
 }
 
-void NVMParameters_t::copyToRam(void){
-	if(NVMParameters_t::baseAddr)
-		QSPI_Flash_t::Get_QSPI_flash()->Read_flash(QSPI_FLASH_NVM_PARAMS_ADDR,
-				(uint8_t*)NVMParameters_t::paramsHeaderPtr,QSPI_FLASH_NVM_PARAMS_SIZE);
+
+
+void NvmParameters::copyToRam(void)
+{
+	if(baseAddress_)
+		QspiFlash::getQspiFlash()->read(NVM_PARAMETERS_BASE_ADDRESS,
+				(uint8_t*)parametersHeader_, NVM_PARAMETERS_SIZE);
 }
 
-void NVMParameters_t::saveToNVM(void){
-	if(NVMParameters_t::baseAddr){
-		QSPI_Flash_t::Get_QSPI_flash()->FlashErase(QSPI_FLASH_NVM_PARAMS_ADDR, QSPI_FLASH_NVM_PARAMS_SIZE);
-		QSPI_Flash_t::Get_QSPI_flash()->Write_flash(QSPI_FLASH_NVM_PARAMS_ADDR,
-						(uint8_t*)NVMParameters_t::paramsHeaderPtr,QSPI_FLASH_NVM_PARAMS_SIZE);
+
+
+void NvmParameters::saveToNvm(void)
+{
+	if(baseAddress_){
+		QspiFlash::getQspiFlash()->erase(NVM_PARAMETERS_BASE_ADDRESS, NVM_PARAMETERS_SIZE);
+		QspiFlash::getQspiFlash()->write(NVM_PARAMETERS_BASE_ADDRESS,
+				(uint8_t*)parametersHeader_,NVM_PARAMETERS_SIZE);
 	}
 }
+
+}
+}
+
+#endif

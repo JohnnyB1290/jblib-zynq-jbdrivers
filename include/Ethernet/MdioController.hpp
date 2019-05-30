@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief xScuWdt_ Driver Description
+ * @brief MDIO Controller Driver Description
  *
  *
  * @note
@@ -23,44 +23,35 @@
  * This file is a part of JB_Lib.
  */
 
-#ifndef WDT_HPP_
-#define WDT_HPP_
+#ifndef MDIO_CONTROLLER_HPP_
+#define MDIO_CONTROLLER_HPP_
 
 #include "jb_common.h"
-#include "callback_interfaces.hpp"
-#include "IrqController.hpp"
-#include "xscuwdt.h"
+
+#define MDIO_CONTROLLER_NUM_MDIO 2
 
 namespace jblib
 {
 namespace jbdrivers
 {
 
-using namespace jbkernel;
-
-class Wdt :protected IIrqListener, public IVoidCallback
+class MdioController
 {
 public:
-	static Wdt* getWdt(void);
-	void initialize(uint16_t reloadTimeS);
-	void start(void);
-	void stop(void);
-	void reset(void);
-	bool isLastResetWasWdt(void);
-	virtual void voidCallback(void* const source, void* parameter);
+	static MdioController* getMdioController(uint8_t number);
+	void setMdioDivisor(XEmacPs_MdcDiv divisor);
+	uint16_t phyRead(uint32_t phyAddress, uint32_t registerNum);
+	void phyWrite(uint32_t phyAddress,uint32_t registerNum, uint16_t phyData);
 
 private:
-	Wdt(void);
-	virtual void irqHandler(uint32_t irqNumber);
+	MdioController(uint8_t number);
 
-	static Wdt* wdt_;
-	XScuWdt xScuWdt_;		/* Cortex SCU Private WatchDog Timer Instance */
-	XScuWdt* xScuWdtPtr_ = NULL;
-	bool isLastResetWasWdt_ = false;
-	bool isInitialized_ = false;
+	static MdioController* mdioControllers_[MDIO_CONTROLLER_NUM_MDIO];
+	uint8_t number_ = 0;
+	XEmacPs emacPs_;
 };
 
 }
 }
 
-#endif /* WDT_HPP_ */
+#endif /* MDIO_CONTROLLER_HPP_ */

@@ -1,15 +1,32 @@
-/*
- * SLCR.hpp
+/**
+ * @file
+ * @brief SLCR Defines
  *
- *  Created on: 14 feb. 2018 ã.
- *      Author: Stalker1290
+ *
+ * @note
+ * Copyright Â© 2019 Evgeniy Ivanov. Contacts: <strelok1290@gmail.com>
+ * All rights reserved.
+ * @note
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * @note
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @note
+ * This file is a part of JB_Lib.
  */
 
-#ifndef SRC_SLCR_HPP_
-#define SRC_SLCR_HPP_
+#ifndef SLCR_HPP_
+#define SLCR_HPP_
 
-#include "chip.h"
-
+#include "jb_common.h"
 
 #define DCFG_DEVICE_ID					XPAR_XDCFG_0_DEVICE_ID
 
@@ -39,4 +56,4 @@
 #define SLCR_LOCK_KEY_VALUE				0x767B
 #define SLCR_UNLOCK_KEY_VALUE			0xDF0D
 
-#endif /* SRC_SLCR_HPP_ */
+#endif /* SLCR_HPP_ */

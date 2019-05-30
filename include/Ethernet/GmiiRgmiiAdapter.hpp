@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief xScuWdt_ Driver Description
+ * @brief GMII RGMII Adapter Driver Description
  *
  *
  * @note
@@ -23,44 +23,48 @@
  * This file is a part of JB_Lib.
  */
 
-#ifndef WDT_HPP_
-#define WDT_HPP_
+#ifndef GMII_RGMII_ADAPTER_HPP_
+#define GMII_RGMII_ADAPTER_HPP_
 
 #include "jb_common.h"
-#include "callback_interfaces.hpp"
-#include "IrqController.hpp"
-#include "xscuwdt.h"
+#include "Ethernet/MdioController.hpp"
+#include "xbram.h"
+
 
 namespace jblib
 {
 namespace jbdrivers
 {
 
-using namespace jbkernel;
+typedef enum{
+	ADAPTER_SPEED_MODE_10 	= 0,
+	ADAPTER_SPEED_MODE_100 	= 1,
+	ADAPTER_SPEED_MODE_1000 = 2,
+}GmiiRgmiiSpeedModeControl_t;
 
-class Wdt :protected IIrqListener, public IVoidCallback
-{
+
+
+class GmiiRgmiiAdapter{
 public:
-	static Wdt* getWdt(void);
-	void initialize(uint16_t reloadTimeS);
-	void start(void);
-	void stop(void);
+	GmiiRgmiiAdapter(MdioController* mdioController, uint32_t phyAddr,
+			uint32_t statusRegNum);
 	void reset(void);
-	bool isLastResetWasWdt(void);
-	virtual void voidCallback(void* const source, void* parameter);
+	void setSpeed(GmiiRgmiiSpeedModeControl_t speed);
+	uint8_t getSpeed(void);
+	uint32_t getStatus(void);
+	uint8_t getLinkStatus(void);
+	uint8_t getClockSpeedStatus(void);
+	uint8_t getDuplexStatus(void);
+	uint8_t getSpeedModeStatus(void);
 
 private:
-	Wdt(void);
-	virtual void irqHandler(uint32_t irqNumber);
-
-	static Wdt* wdt_;
-	XScuWdt xScuWdt_;		/* Cortex SCU Private WatchDog Timer Instance */
-	XScuWdt* xScuWdtPtr_ = NULL;
-	bool isLastResetWasWdt_ = false;
-	bool isInitialized_ = false;
+	MdioController* mdioController_ = NULL;
+	uint32_t phyAddr_ = 0;
+	uint32_t statusRegNum_ = 0;
+	XBram bram_;
 };
 
 }
 }
 
-#endif /* WDT_HPP_ */
+#endif /* GMII_RGMII_ADAPTER_HPP_ */

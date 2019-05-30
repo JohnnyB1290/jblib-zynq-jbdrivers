@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief xScuWdt_ Driver Description
+ * @brief SD Card Driver Description
  *
  *
  * @note
@@ -23,44 +23,46 @@
  * This file is a part of JB_Lib.
  */
 
-#ifndef WDT_HPP_
-#define WDT_HPP_
+#ifndef SD_CARD_HPP_
+#define SD_CARD_HPP_
 
 #include "jb_common.h"
-#include "callback_interfaces.hpp"
-#include "IrqController.hpp"
-#include "xscuwdt.h"
+#include "IStorageDevice.hpp"
+#include "xsdps.h"
 
 namespace jblib
 {
 namespace jbdrivers
 {
 
-using namespace jbkernel;
+using namespace jbfatfs;
 
-class Wdt :protected IIrqListener, public IVoidCallback
+
+class SdCard : public IStorageDevice
 {
 public:
-	static Wdt* getWdt(void);
-	void initialize(uint16_t reloadTimeS);
-	void start(void);
-	void stop(void);
-	void reset(void);
-	bool isLastResetWasWdt(void);
-	virtual void voidCallback(void* const source, void* parameter);
+	static SdCard* getSdCard(void);
+	virtual DSTATUS diskInitialize(void);
+	virtual DSTATUS diskStatus(void);
+	virtual DRESULT diskRead(BYTE* buff, DWORD sector, UINT count);
+	virtual DRESULT diskWrite(const BYTE* buff, DWORD sector, UINT count);
+	virtual DRESULT diskIoctl(BYTE cmd, void* buff);
 
 private:
-	Wdt(void);
-	virtual void irqHandler(uint32_t irqNumber);
+	SdCard(void);
 
-	static Wdt* wdt_;
-	XScuWdt xScuWdt_;		/* Cortex SCU Private WatchDog Timer Instance */
-	XScuWdt* xScuWdtPtr_ = NULL;
-	bool isLastResetWasWdt_ = false;
-	bool isInitialized_ = false;
+	static SdCard* sdCard_;
+	DSTATUS status_ = STA_NOINIT;
+	XSdPs xSdPs_;
+	u32 baseAddress_ = 0;
+	u32 cardDetect_ = 0;
+	u32 writeProtect_ = 0;
+	u32 slotType_ = 0;
+	u8 hostControllerVersion_ = 0;
+	u8 extCsdBuffer_[512] __attribute__ ((aligned(32)));
 };
 
 }
 }
 
-#endif /* WDT_HPP_ */
+#endif /* SD_CARD_HPP_ */

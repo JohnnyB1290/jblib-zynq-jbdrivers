@@ -1,95 +1,153 @@
-/*
- * wdt.cpp
+/**
+ * @file
+ * @brief xScuWdt_ Driver Realization
  *
- *  Created on: 14.03.2018 ã.
- *      Author: Stalker1290
+ *
+ * @note
+ * Copyright © 2019 Evgeniy Ivanov. Contacts: <strelok1290@gmail.com>
+ * All rights reserved.
+ * @note
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * @note
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @note
+ * This file is a part of JB_Lib.
  */
 
-#include "wdt.hpp"
-#include "stdio.h"
-#include "Defines.h"
-#include "CONTROLLER.hpp"
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
 
-WDT_t* WDT_t::WDT_t_instance_ptr = NULL;
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
-WDT_t* WDT_t::get_WDT(void)
+#include "jb_common.h"
+#if JBDRIVERS_USE_WATCHDOG
+
+#include "Wdt.hpp"
+#include "JbController.hpp"
+#if USE_CONSOLE
+#include <stdio.h>
+#endif
+
+namespace jblib
 {
-	if(WDT_t::WDT_t_instance_ptr == NULL) WDT_t::WDT_t_instance_ptr = new WDT_t();
-	return WDT_t::WDT_t_instance_ptr;
+namespace jbdrivers
+{
+
+using namespace jbkernel;
+
+Wdt* Wdt::wdt_ = NULL;
+
+
+
+Wdt* Wdt::getWdt(void)
+{
+	if(wdt_ == NULL)
+		wdt_ = new Wdt();
+	return wdt_;
 }
 
-WDT_t::WDT_t(void):IRQ_LISTENER_t(), Callback_Interface_t()
+
+
+Wdt::Wdt(void) : IIrqListener(), IVoidCallback()
 {
-	this->Initialized = false;
-	this->Last_reset_wd = false;
+
 }
 
-void WDT_t::Initialize(uint16_t reload_time_s)
+
+
+void Wdt::initialize(uint16_t reloadTimeS)
 {
-	XScuWdt_Config *ConfigPtr;
-	uint32_t Reg;
-	uint32_t WD_load;
+	if(!this->isInitialized_) {
+		XScuWdt_Config* config = XScuWdt_LookupConfig(WDT_DEVICE_ID);
+		XScuWdt_CfgInitialize((XScuWdt*)&this->xScuWdt_, config,
+				config->BaseAddr);
+		this->xScuWdtPtr_ = (XScuWdt*)&this->xScuWdt_;
+		XScuWdt_SetTimerMode(this->xScuWdtPtr_);
+		this->isLastResetWasWdt_ = ((XScuWdt_ReadReg(this->xScuWdt_.Config.BaseAddr,
+				XSCUWDT_ISR_OFFSET) & XSCUWDT_ISR_EVENT_FLAG_MASK) ==
+						XSCUWDT_ISR_EVENT_FLAG_MASK);
+		XScuWdt_WriteReg(this->xScuWdt_.Config.BaseAddr, XSCUWDT_ISR_OFFSET,
+				XSCUWDT_ISR_EVENT_FLAG_MASK);
+		uint32_t reg = XScuWdt_ReadReg(this->xScuWdt_.Config.BaseAddr,
+				XSCUWDT_CONTROL_OFFSET);
+		XScuWdt_SetControlReg(this->xScuWdtPtr_,
+				reg |XSCUWDT_CONTROL_IT_ENABLE_MASK);
+		uint32_t load = XPAR_PS7_CORTEXA9_0_CPU_CLK_FREQ_HZ >> 1;
+		load = reloadTimeS * load;
+		XScuWdt_LoadWdt(this->xScuWdtPtr_, load);
 
-	if(!this->Initialized)
-	{
-		ConfigPtr = XScuWdt_LookupConfig(WDT_DEVICE_ID);
-		XScuWdt_CfgInitialize((XScuWdt*)&this->Watchdog, ConfigPtr,ConfigPtr->BaseAddr);
-		this->WdtInstancePtr = (XScuWdt*)&this->Watchdog;
-
-		XScuWdt_SetTimerMode(this->WdtInstancePtr);
-
-		this->Last_reset_wd = ((XScuWdt_ReadReg(this->Watchdog.Config.BaseAddr,	XSCUWDT_ISR_OFFSET) & XSCUWDT_ISR_EVENT_FLAG_MASK) == XSCUWDT_ISR_EVENT_FLAG_MASK);
-		XScuWdt_WriteReg(this->Watchdog.Config.BaseAddr, XSCUWDT_ISR_OFFSET, XSCUWDT_ISR_EVENT_FLAG_MASK);
-
-		Reg = XScuWdt_ReadReg(this->Watchdog.Config.BaseAddr,XSCUWDT_CONTROL_OFFSET);
-		XScuWdt_SetControlReg(this->WdtInstancePtr, Reg|XSCUWDT_CONTROL_IT_ENABLE_MASK);
-
-		WD_load = XPAR_PS7_CORTEXA9_0_CPU_CLK_FREQ_HZ>>1;
-		WD_load = reload_time_s * WD_load;
-		XScuWdt_LoadWdt(this->WdtInstancePtr,WD_load);
-
-		IRQ_CONTROLLER_t::getIRQController()->Add_Peripheral_IRQ_Listener(this, WDT_INT_ID);
-		IRQ_CONTROLLER_t::getIRQController()->SetPriority(WDT_INT_ID, WDT_interrupt_priority);
-		IRQ_CONTROLLER_t::getIRQController()->EnableInterrupt(WDT_INT_ID);
-		this->Initialized = true;
+		IrqController::getIrqController()->addPeripheralIrqListener(this,
+				WDT_INTERRUPT_ID);
+		IrqController::getIrqController()->setPriority(WDT_INTERRUPT_ID,
+				WDT_INTERRUPT_PRIORITY);
+		IrqController::getIrqController()->enableInterrupt(WDT_INTERRUPT_ID);
+		this->isInitialized_ = true;
 	}
 }
 
-void WDT_t::Start(void)
+
+
+void Wdt::start(void)
 {
-	this->Reset();
-	printf("WDT Start\n\r");
-	XScuWdt_Start(this->WdtInstancePtr);
+	this->reset();
+	#if USE_CONSOLE
+	printf("WatchDog Timer start\r\n");
+	#endif
+	XScuWdt_Start(this->xScuWdtPtr_);
 }
 
-void WDT_t::Stop(void)
+
+
+void Wdt::stop(void)
 {
-	printf("WDT Stop\n\r");
-	XScuWdt_Stop(this->WdtInstancePtr);
+	#if USE_CONSOLE
+	printf("WatchDog Timer stop\r\n");
+	#endif
+	XScuWdt_Stop(this->xScuWdtPtr_);
 }
 
-void WDT_t::Reset(void)
+
+
+void Wdt::reset(void)
 {
-	XScuWdt_RestartWdt(this->WdtInstancePtr);
+	XScuWdt_RestartWdt(this->xScuWdtPtr_);
 }
 
-bool WDT_t::Is_last_reset_wd(void)
+
+
+bool Wdt::isLastResetWasWdt(void)
 {
-	return this->Last_reset_wd;
+	return this->isLastResetWasWdt_;
 }
 
-void WDT_t::IRQ(uint32_t IRQ_num)
+
+
+void Wdt::irqHandler(uint32_t irqNumber)
 {
-	if(IRQ_num == WDT_INT_ID)
-	{
-		printf("Oh NO! WatchDog Expired!\n\r");
-		XScuWdt_Stop(this->WdtInstancePtr);
-		IRQ_CONTROLLER_t::getIRQController()->DisableInterrupt(WDT_INT_ID);
-		CONTROLLER_t::get_CONTROLLER()->Jump_to_Addr(WDT_RESET_ADDR);
-	}
+	#if USE_CONSOLE
+	printf("WatchDog Timer Expired!\r\n");
+	#endif
+	XScuWdt_Stop(this->xScuWdtPtr_);
+	IrqController::getIrqController()->disableInterrupt(WDT_INTERRUPT_ID);
+	JbController::goToApp(WDT_RESET_ADDRESS);
 }
 
-void WDT_t::void_callback(void* Intf_ptr, void* parameters)
+
+
+void Wdt::voidCallback(void* const source, void* parameter)
 {
-	this->Reset();
+	this->reset();
 }
+
+}
+}
+
+#endif

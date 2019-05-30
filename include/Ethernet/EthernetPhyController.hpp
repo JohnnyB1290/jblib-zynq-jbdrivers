@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief xScuWdt_ Driver Description
+ * @brief Ethernet Phy Controller Driver Description
  *
  *
  * @note
@@ -23,44 +23,34 @@
  * This file is a part of JB_Lib.
  */
 
-#ifndef WDT_HPP_
-#define WDT_HPP_
+#ifndef ETHERNET_PHY_CONTROLLER_HPP_
+#define ETHERNET_PHY_CONTROLLER_HPP_
 
 #include "jb_common.h"
-#include "callback_interfaces.hpp"
-#include "IrqController.hpp"
-#include "xscuwdt.h"
+#include "Ethernet/MdioController.hpp"
 
 namespace jblib
 {
 namespace jbdrivers
 {
 
-using namespace jbkernel;
-
-class Wdt :protected IIrqListener, public IVoidCallback
+class EthernetPhyController
 {
 public:
-	static Wdt* getWdt(void);
-	void initialize(uint16_t reloadTimeS);
-	void start(void);
-	void stop(void);
-	void reset(void);
-	bool isLastResetWasWdt(void);
-	virtual void voidCallback(void* const source, void* parameter);
+	static void setUpSlcrDivisors(uint32_t macBaseAddress, int32_t speed);
+	EthernetPhyController(MdioController* mdioController, uint32_t phyAddr);
+	void configureSpeed(uint32_t speed);
+	uint32_t getSpeed(void);
 
 private:
-	Wdt(void);
-	virtual void irqHandler(uint32_t irqNumber);
+	uint32_t getTiSpeed(void);
+	uint32_t getMarvellSpeed(void);
 
-	static Wdt* wdt_;
-	XScuWdt xScuWdt_;		/* Cortex SCU Private WatchDog Timer Instance */
-	XScuWdt* xScuWdtPtr_ = NULL;
-	bool isLastResetWasWdt_ = false;
-	bool isInitialized_ = false;
+	MdioController* mdioController_ = NULL;
+	uint32_t phyAddr_ = 0;
 };
 
 }
 }
 
-#endif /* WDT_HPP_ */
+#endif /* ETHERNET_PHY_CONTROLLER_HPP_ */

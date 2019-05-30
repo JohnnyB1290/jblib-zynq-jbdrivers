@@ -1,103 +1,74 @@
-/*
- * IPC.hpp
+/**
+ * @file
+ * @brief Inter-Processor Communication Driver Description
  *
- *  Created on: 13.11.2018
- *      Author: Stalker1290
+ *
+ * @note
+ * Copyright © 2019 Evgeniy Ivanov. Contacts: <strelok1290@gmail.com>
+ * All rights reserved.
+ * @note
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * @note
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @note
+ * This file is a part of JB_Lib.
  */
 
 #ifndef IPC_HPP_
 #define IPC_HPP_
 
-#include "chip.h"
-#include "IRQ_Controller.hpp"
-#include "Defines.h"
-#include "Common_interfaces.hpp"
+#include "jb_common.h"
+#include "callback_interfaces.hpp"
+#include "IrqController.hpp"
+#include "IIpc.hpp"
 
-#define IPC_Listeners_num IPC_MAX_IDS
+namespace jblib
+{
+namespace jbdrivers
+{
 
-typedef struct ipc_queue_struct {
-	int32_t size;				/*!< Size of a single item in queue */
-	uint32_t count;				/*!< Toal number of elements that can be stored in the queue */
-	volatile uint32_t head;		/*!< Head index of the queue */
-	volatile uint32_t tail;		/*!< Tail index of the queue */
-	uint8_t *data;				/*!< Pointer to the data */
-	uint32_t valid;             /*!< Queue is valid only if this is #QUEUE_MAGIC_VALID */
-	uint32_t reserved[2];		/*!< Reserved entry to keep the structure aligned */
-}ipc_queue_t;
+using namespace jbkernel;
 
-#define QUEUE_VALID      1
-#define QUEUE_INSERT     0
-#define QUEUE_FULL      -1
-#define QUEUE_EMPTY     -2
-#define QUEUE_ERROR     -3
-#define QUEUE_TIMEOUT   -4
-#define QUEUE_MAGIC_VALID   0xCAB51053
+typedef enum
+{
+	GATE_CORE_A9_0 = 0,
+	GATE_CORE_A9_1 = 1,
+}IpcGate_t;
 
-#define QUEUE_DATA_COUNT(q) ((uint32_t) ((q)->head - (q)->tail))
-#define QUEUE_IS_FULL(q)    (QUEUE_DATA_COUNT(q) >= (q)->count)
-#define QUEUE_IS_EMPTY(q)   ((q)->head == (q)->tail)
-#define QUEUE_IS_VALID(q)   ((q)->valid == QUEUE_MAGIC_VALID)
-
-#pragma pack(push, 1)
-
-typedef struct __ipcex_msg {
-	uint8_t sender;
-	uint32_t id;
-	uint32_t data;
-} ipcex_msg_t;
-
-#pragma pack(pop)
-
-class IPC_listener_t
+class Ipc : public IIPC, protected IIrqListener
 {
 public:
-	IPC_listener_t(void){this->CODE = 0;}
-    virtual ~IPC_listener_t(void){}
-    virtual void IPC_MSG_HANDLER(ipcex_msg_t* msg) = 0;
-    uint64_t getCode(void){return this->CODE;}
-    void setCode(uint64_t CODE){this->CODE = CODE;}
+	static Ipc* getIpc(uint8_t gate);
+	virtual void addIpcListener(IIpcListener* listener);
+    virtual void deleteIpcListener(IIpcListener* listener);
+    virtual int pushMsg(uint32_t id, uint32_t data);
+    virtual int getWriteQueueMsgCount(void);
+    virtual int setGlobalValue(uint32_t index, uint32_t value);
+    virtual uint32_t getGlobalValue(uint32_t index);
+
 private:
-    uint64_t CODE;
+	Ipc(uint8_t gate);
+	virtual void irqHandler(uint32_t irqNumber);
+	void sendInterrupt(void);
+
+	static Ipc* ipcs_[2];
+    IpcQueue_t* readQueue_ = NULL;
+    IpcQueue_t* writeQueue_ = NULL;
+    IpcMsg_t writeQueueData_[IPC_QUEUE_SIZE];
+    uint32_t globalValues_[IPC_NUM_GLOBAL_VALUES];
+    IIpcListener* listeners_[IPC_NUM_LISTENERS];
 };
 
-class C_IPC_listener_t:public IPC_listener_t
-{
-public:
-	C_IPC_listener_t(uint64_t CODE,void (*func)(ipcex_msg_t*)):IPC_listener_t()
-	{
-		this->setCode(CODE);
-		this->callback = func;
-	}
-private:
-	virtual void IPC_MSG_HANDLER(ipcex_msg_t* msg){ if(this->callback != NULL) this->callback(msg);}
-	void (*callback)(ipcex_msg_t*);
-};
-
-typedef enum{
-	CORE_A9_0_GATE = 0,
-	CORE_A9_1_GATE = 1,
-}ipcGate_t;
-
-class IPC_proto_t:protected IRQ_LISTENER_t
-{
-public:
-	static IPC_proto_t* get_IPC_proto(uint8_t gate);
-    void Add_IPC_Listener(IPC_listener_t* listener);
-    void Delete_IPC_Listener(IPC_listener_t* listener);
-    int Qwr_msg_count(void);
-    int MsgPush(uint32_t id, uint32_t data);
-    int SetGblVal(int index, uint32_t val);
-    uint32_t GetGblVal(int index);
-private:
-	IPC_proto_t(uint8_t gate);
-	virtual void IRQ(uint32_t IRQ_num);
-    void sendInt(void);
-
-	static IPC_proto_t* IPC_proto_ptr[2];
-    ipc_queue_t* qrd;
-    ipc_queue_t* qwr;
-    uint32_t gblval[IPC_MAX_GBLVAL];
-    IPC_listener_t* ipcex_listeners[IPC_Listeners_num];
-};
+}
+}
 
 #endif /* IPC_HPP_ */

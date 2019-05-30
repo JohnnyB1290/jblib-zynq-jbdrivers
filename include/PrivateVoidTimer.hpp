@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief xScuWdt_ Driver Description
+ * @brief Void Timer on Private Timer Driver Description
  *
  *
  * @note
@@ -23,13 +23,13 @@
  * This file is a part of JB_Lib.
  */
 
-#ifndef WDT_HPP_
-#define WDT_HPP_
+#ifndef PRIVATE_VOID_TIMER_HPP_
+#define PRIVATE_VOID_TIMER_HPP_
 
 #include "jb_common.h"
-#include "callback_interfaces.hpp"
+#include "IVoidTimer.hpp"
 #include "IrqController.hpp"
-#include "xscuwdt.h"
+#include "xscutimer.h"
 
 namespace jblib
 {
@@ -38,29 +38,30 @@ namespace jbdrivers
 
 using namespace jbkernel;
 
-class Wdt :protected IIrqListener, public IVoidCallback
+class PrivateVoidTimer : public IVoidTimer, protected IIrqListener
 {
 public:
-	static Wdt* getWdt(void);
-	void initialize(uint16_t reloadTimeS);
-	void start(void);
-	void stop(void);
-	void reset(void);
-	bool isLastResetWasWdt(void);
-	virtual void voidCallback(void* const source, void* parameter);
+	static PrivateVoidTimer* getPrivateVoidTimer(void);
+	virtual void initialize(uint32_t us);
+	virtual void start(void);
+	virtual void stop(void);
+	virtual void reset(void);
+	virtual uint32_t getCounter(void);
+	virtual void setCounter(uint32_t count);
+	virtual void addCallback(IVoidCallback* const callback);
+	virtual void deleteCallback(void);
+	virtual void deinitialize(void);
 
 private:
-	Wdt(void);
+	PrivateVoidTimer(void);
 	virtual void irqHandler(uint32_t irqNumber);
 
-	static Wdt* wdt_;
-	XScuWdt xScuWdt_;		/* Cortex SCU Private WatchDog Timer Instance */
-	XScuWdt* xScuWdtPtr_ = NULL;
-	bool isLastResetWasWdt_ = false;
-	bool isInitialized_ = false;
+	static PrivateVoidTimer* privateVoidTimer_;
+	XScuTimer xScuTimer_;
+	IVoidCallback* callback_ = NULL;
 };
 
 }
 }
 
-#endif /* WDT_HPP_ */
+#endif /* PRIVATE_VOID_TIMER_HPP_ */
