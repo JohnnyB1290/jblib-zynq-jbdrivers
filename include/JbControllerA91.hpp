@@ -49,7 +49,9 @@ public:
 	static void initialize(void);
 	static void doMain(void);
 	static void addMainProcedure(IVoidCallback* callback);
+	static void addMainProcedure(IVoidCallback* callback, void* parameter);
 	static void deleteMainProcedure(IVoidCallback* callback);
+	static void deleteMainProcedure(IVoidCallback* callback, void* parameter);
 	static void delayMs(uint32_t ms);
 	static void delayUs(uint32_t us);
 	static void gpioOn(uint8_t number);
@@ -68,6 +70,7 @@ private:
 	static uint32_t boardGpios_[];
 	static bool isInitialized_;
 	static IVoidCallback* mainProcedures_[JBCONTROLLER_NUM_MAIN_PROCEDURES];
+	static void* mainProceduresParameters_[JBCONTROLLER_NUM_MAIN_PROCEDURES];
 };
 
 }

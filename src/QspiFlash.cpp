@@ -320,6 +320,13 @@ QspiFlash::QspiFlash(void)
 
 
 
+QspiFlashInfo_t* QspiFlash::getInfo(void)
+{
+	return &this->flashInfoTable_[this->infoTableIndex_];
+}
+
+
+
 void QspiFlash::initialize(void)
 {
 	if(!this->isInitialized_) {

@@ -72,6 +72,7 @@ public:
 	void read(uint32_t address,uint8_t* buffer, uint32_t size);
 	void write(uint32_t address,uint8_t* buffer, uint32_t size);
 	void erase(u32 address, u32 size);
+	QspiFlashInfo_t* getInfo(void);
 	#if QSPI_FLASH_USE_FILE_SYSTEM
 	virtual DSTATUS diskInitialize(void);
 	virtual DSTATUS diskStatus(void);

@@ -23,8 +23,8 @@
  * This file is a part of JB_Lib.
  */
 
-#ifndef CONTROLLER_HPP_
-#define CONTROLLER_HPP_
+#ifndef JB_CONTROLLER_HPP_
+#define JB_CONTROLLER_HPP_
 
 #ifdef CORE_A9_0
 #include "JbControllerA90.hpp"
@@ -34,4 +34,4 @@
 #endif
 
 
-#endif /*CONTROLLER_HPP_ */
+#endif /*JB_CONTROLLER_HPP_ */
