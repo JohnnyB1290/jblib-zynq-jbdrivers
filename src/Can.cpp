@@ -243,7 +243,7 @@ void Can::setTimingFields(uint32_t speedBitS)
     static const int MaxSamplePointLocationPermill = 900;
 
     /*
-     * Computing (prescaler_ * BS):
+     * Computing (prescaler * BS):
      *   BITRATE = 1 / (PRESCALER * (1 / PCLK) * (1 + BS1 + BS2))       -- See the Reference Manual
      *   BITRATE = PCLK / (PRESCALER * (1 + BS1 + BS2))                 -- Simplified
      * let:
@@ -255,7 +255,7 @@ void Can::setTimingFields(uint32_t speedBitS)
     const uint32_t prescaler_bs = Can::clocks_[this->number_] / speedBitS;
 
     /*
-     * Searching for such prescaler_ value so that the number of quanta per bit is highest.
+     * Searching for such prescaler value so that the number of quanta per bit is highest.
      */
     uint8_t bs1_bs2_sum = (uint8_t)(max_quanta_per_bit - 1);
 
@@ -265,8 +265,9 @@ void Can::setTimingFields(uint32_t speedBitS)
         bs1_bs2_sum--;
     }
 
-    const uint32_t prescaler_ = prescaler_bs / (1 + bs1_bs2_sum);
-    if ((prescaler_ < 1U) || (prescaler_ > 256U)) return;
+    const uint32_t prescaler = prescaler_bs / (1 + bs1_bs2_sum);
+    if ((prescaler < 1U) || (prescaler > 256U))
+    	return;
 
     /*
      * Now we have a constraint: (BS1 + BS2) == bs1_bs2_sum.
@@ -312,10 +313,10 @@ void Can::setTimingFields(uint32_t speedBitS)
      *     ts2,ts1,brp = (x>>20)&7, (x>>16)&15, x&511
      *     return (1+ts1+1)/(1+ts1+1+ts2+1)
      */
-    if ((speedBitS != (clocks_[this->number_] / (prescaler_ * (1 + bs1 + bs2)))) ||
+    if ((speedBitS != (clocks_[this->number_] / (prescaler * (1 + bs1 + bs2)))) ||
         !valid) return;
 
-	this->prescaler_ = (prescaler_ - 1);
+	this->prescaler_ = (prescaler - 1);
 	this->syncJumpWidth_ = 1; // One is recommended by UAVCAN, CANOpen, and DeviceNet
 	this->timeSegment2_ = bs2 - 1;
 	this->timeSegment1_ = bs1 - 1;
