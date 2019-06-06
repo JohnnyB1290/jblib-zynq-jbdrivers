@@ -27,12 +27,21 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
+
+
 #include "jb_common.h"
 #if JBDRIVERS_USE_CAN
 #include <string.h>
 #include "Can.hpp"
+#if CAN_USE_UAVCAN
+#include <uavcan/util/templates.hpp>
+#endif
 #if (USE_CONSOLE && CAN_USE_CONSOLE)
 #include "stdio.h"
+#endif
+
+#if CAN_USE_UAVCAN
+#define NUMBER_OF_HW_FILTERS 4
 #endif
 
 namespace jblib
@@ -41,6 +50,12 @@ namespace jbdrivers
 {
 
 using namespace jbutilities;
+#if CAN_USE_UAVCAN
+using namespace jbuavcan;
+using namespace uavcan;
+#endif
+
+
 
 uint32_t Can::interruptIds_[CAN_NUM_INSTANCES] = CAN_INTERRUPT_IDS;
 uint32_t Can::interruptPriorities_[CAN_NUM_INSTANCES] = CAN_INTERRUPT_PRIORITIES;
@@ -62,7 +77,11 @@ Can* Can::getCan(uint8_t number)
 
 
 
+#if CAN_USE_UAVCAN
+Can::Can(uint8_t number) : IIrqListener(), ICanDriver(), ICanIface()
+#else
 Can::Can(uint8_t number) : IIrqListener()
+#endif
 {
 	this->number_ = number;
 	this->txRingBuffer_ = new RingBuffer(
@@ -118,7 +137,13 @@ void Can::recvHandler(void)
 {
 	CanFrame_t frame;
 	XCanPs_Recv(this->xCanPsPtr_, (uint32_t*)&frame);
+	#if CAN_USE_UAVCAN
+	frame.timestamp = systemClock_->getMonotonic().toUSec();
+	if((this->rxRingBuffer_->insert(&frame)) == 0)
+		this->rxQueueOverflowCnt_++;
+	#else
 	this->rxRingBuffer_->insert(&frame);
+	#endif
 }
 
 
@@ -134,11 +159,18 @@ void Can::sendHandler(void)
 
 
 
+#if CAN_USE_UAVCAN
+void Can::initialize(uint32_t speedBitS, SystemClock* systemClock)
+#else
 void Can::initialize(uint32_t speedBitS)
+#endif
 {
 	if(!this->isInitialized_) {
 
 		this->speedBitS_ = speedBitS;
+		#if CAN_USE_UAVCAN
+		this->systemClock_ = systemClock;
+		#endif
 
 		XCanPs_Config* config = XCanPs_LookupConfig(deviceIds_[this->number_]);
 		XCanPs_CfgInitialize(this->xCanPsPtr_, config, config->BaseAddr);
@@ -297,7 +329,8 @@ void Can::setTimingFields(uint32_t speedBitS)
 
 
 
-void Can::pushToTxQueue(uint32_t id, uint8_t* data, uint8_t size, bool extId)
+void Can::pushToTxQueue(uint32_t id, const uint8_t* data,
+		const uint8_t size, bool extId)
 {
 	CanFrame_t frame;
 	memset(&frame, 0, sizeof(CanFrame_t));
@@ -316,12 +349,23 @@ void Can::pushToTxQueue(uint32_t id, uint8_t* data, uint8_t size, bool extId)
 		XCanPs_Send(this->xCanPsPtr_, (uint32_t*)&frame);
 		XCanPs_IntrClear(this->xCanPsPtr_, XCANPS_IXR_TXFEMP_MASK);
 	}
-	else this->txRingBuffer_->insert((void*)&frame);
+	else {
+		#if CAN_USE_UAVCAN
+		if( (this->txRingBuffer_->insert((void*)&frame)) == 0)
+			this->txQueueOverflowCnt_++;
+		#else
+		this->txRingBuffer_->insert((void*)&frame);
+		#endif
+	}
 }
 
 
-
+#if CAN_USE_UAVCAN
+uint8_t Can::pullFromRxQueue(uint32_t* id, uint8_t* data,
+		bool* extId, uint64_t* timestamp)
+#else
 uint8_t Can::pullFromRxQueue(uint32_t* id, uint8_t* data, bool* extId)
+#endif
 {
 	CanFrame_t frame;
 	if(this->rxRingBuffer_->pop(&frame)) {
@@ -337,6 +381,9 @@ uint8_t Can::pullFromRxQueue(uint32_t* id, uint8_t* data, bool* extId)
 		uint8_t frameSize = (frame.dlcr & XCANPS_DLCR_DLC_MASK) >> XCANPS_DLCR_DLC_SHIFT;
 		if(frameSize != 0)
 			memcpy(data, frame.data, frameSize);
+		#if CAN_USE_UAVCAN
+		*timestamp = frame.timestamp;
+		#endif
 		return frameSize;
 	}
 	else return 0;
@@ -344,7 +391,17 @@ uint8_t Can::pullFromRxQueue(uint32_t* id, uint8_t* data, bool* extId)
 
 
 
-void Can::pushToTxQueue(uint32_t id, uint8_t* data, uint8_t size)
+#if CAN_USE_UAVCAN
+uint8_t Can::pullFromRxQueue(uint32_t* id, uint8_t* data, bool* extId)
+{
+	uint64_t timestamp = 0;
+	return this->pullFromRxQueue(id, data, extId, &timestamp);
+}
+#endif
+
+
+
+void Can::pushToTxQueue(uint32_t id, const uint8_t* data, const uint8_t size)
 {
 	this->pushToTxQueue(id, data, size, false);
 }
@@ -398,7 +455,11 @@ void Can::eventHandler(uint32_t eventIntr)
 		printf("CAN %i Bus off Event!\r\n", this->number_);
 		#endif
 		this->deinitialize();
+		#if CAN_USE_UAVCAN
+		this->initialize(this->speedBitS_, this->systemClock_);
+		#else
 		this->initialize(this->speedBitS_);
+		#endif
 		return;
 	}
 	if(eventIntr & XCANPS_IXR_RXOFLW_MASK) {
@@ -443,6 +504,156 @@ void Can::eventHandler(uint32_t eventIntr)
 		#endif
 	}
 }
+
+
+
+#if CAN_USE_UAVCAN
+uavcan::int16_t Can::send(const uavcan::CanFrame& frame,
+                         uavcan::MonotonicTime tx_deadline,
+                         uavcan::CanIOFlags flags)
+{
+    if (frame.isErrorFrame() || (frame.getDataLength() > 8) ||
+    		(flags & uavcan::CanIOFlagLoopback) != 0)
+    	return -1;
+    if(this->txRingBuffer_->isFull())
+    	return 0;
+    if ((frame.id & uavcan::CanFrame::FlagEFF) == 0)
+    	this->pushToTxQueue(frame.id & uavcan::CanFrame::MaskStdID,
+    			frame.data, frame.getDataLength(), false);
+    else
+    	this->pushToTxQueue(frame.id & uavcan::CanFrame::MaskExtID,
+    			frame.data, frame.getDataLength(), true);
+    return 1;
+}
+
+
+
+uavcan::int16_t Can::receive(uavcan::CanFrame& out_frame,
+						uavcan::MonotonicTime& out_ts_monotonic,
+						uavcan::UtcTime& out_ts_utc,
+						uavcan::CanIOFlags& out_flags)
+{
+	out_ts_monotonic = this->systemClock_->getMonotonic();
+	out_flags = 0;
+	if(this->rxRingBuffer_->isEmpty())
+		return 0;
+	bool extId = true;
+	uint64_t timestamp = 0;
+	out_frame.setDataLength(this->pullFromRxQueue(&out_frame.id,
+			out_frame.data, &extId, &timestamp));
+	if(extId){
+		out_frame.id &= uavcan::CanFrame::MaskExtID;
+		out_frame.id |= uavcan::CanFrame::FlagEFF;
+	}
+	else
+		out_frame.id &= uavcan::CanFrame::MaskStdID;
+	out_ts_utc = uavcan::UtcTime::fromUSec(timestamp);
+	return 1;
+}
+
+
+
+uavcan::int16_t Can::select(uavcan::CanSelectMasks& inout_masks,
+					   const uavcan::CanFrame* (&)[uavcan::MaxCanIfaces],
+					   uavcan::MonotonicTime blocking_deadline)
+{
+	inout_masks.read = this->rxRingBuffer_->isEmpty() ? 0 : 1;
+	inout_masks.write = this->txRingBuffer_->isFull() ? 0 : 1;
+	return 0;
+}
+
+
+
+uavcan::int16_t Can::configureFilters(const uavcan::CanFilterConfig* filter_configs,
+								 uavcan::uint16_t num_configs)
+{
+	if(num_configs > NUMBER_OF_HW_FILTERS)
+		return -1;
+	XCanPs_AcceptFilterDisable(this->xCanPsPtr_,
+			XCANPS_AFR_UAF_ALL_MASK);
+	if(num_configs == 0)
+		return 0;
+	uint32_t filterIndex = XCANPS_AFR_UAF1_MASK;
+	uint32_t filterIndexes = 0;
+	while(XCanPs_IsAcceptFilterBusy(this->xCanPsPtr_));
+
+	for(uint32_t i = 0; i < num_configs; i++) {
+		uint32_t maskValue = 0;
+		uint32_t idValue = 0;
+		auto& f = filter_configs[i];
+
+		if ((f.id & f.mask & uavcan::CanFrame::FlagEFF) == 0) {
+			idValue = (f.id & uavcan::CanFrame::MaskStdID) << XCANPS_IDR_ID1_SHIFT;
+			maskValue = (f.mask & uavcan::CanFrame::MaskStdID) << XCANPS_IDR_ID1_SHIFT;
+			if(f.id & uavcan::CanFrame::FlagRTR)
+				idValue |= (1 << XCANPS_IDR_SRR_SHIFT);
+			if(f.mask & uavcan::CanFrame::FlagRTR)
+				maskValue |= (1 << XCANPS_IDR_SRR_SHIFT);
+		}
+		else {
+			idValue = (((f.id & uavcan::CanFrame::MaskExtID) >> 18) <<
+					XCANPS_IDR_ID1_SHIFT) & XCANPS_IDR_ID1_MASK;
+			idValue |= (((f.id & uavcan::CanFrame::MaskExtID) <<
+					XCANPS_IDR_ID2_SHIFT) & XCANPS_IDR_ID2_MASK);
+
+			maskValue = (((f.mask & uavcan::CanFrame::MaskExtID) >> 18) <<
+					XCANPS_IDR_ID1_SHIFT) & XCANPS_IDR_ID1_MASK;
+			maskValue |= (((f.mask & uavcan::CanFrame::MaskExtID) <<
+					XCANPS_IDR_ID2_SHIFT) & XCANPS_IDR_ID2_MASK);
+
+			if(f.id & uavcan::CanFrame::FlagRTR)
+				idValue |= XCANPS_IDR_RTR_MASK;
+			if(f.mask & uavcan::CanFrame::FlagRTR)
+				maskValue |= XCANPS_IDR_RTR_MASK;
+		}
+
+		if( XCanPs_AcceptFilterSet(this->xCanPsPtr_, filterIndex,
+				maskValue, idValue) != XST_SUCCESS) {
+			XCanPs_AcceptFilterDisable(this->xCanPsPtr_, XCANPS_AFR_UAF_ALL_MASK);
+			return -1;
+		}
+		filterIndexes |= filterIndex;
+		filterIndex = filterIndex<<1;
+	}
+	XCanPs_AcceptFilterEnable(this->xCanPsPtr_, filterIndexes);
+	return 0;
+}
+
+
+
+uavcan::uint64_t Can::getErrorCount() const
+{
+	uint8_t rxErrCnt = 0;
+	uint8_t txErrCnt = 0;
+	uint64_t ret = 0;
+	XCanPs_GetBusErrorCounter(this->xCanPsPtr_, &rxErrCnt, &txErrCnt);
+	ret = this->rxQueueOverflowCnt_ + this->txQueueOverflowCnt_;
+	ret += (rxErrCnt + txErrCnt);
+	return ret;
+}
+
+
+
+uavcan::uint16_t Can::getNumFilters() const
+{
+	return NUMBER_OF_HW_FILTERS;
+}
+
+
+
+uavcan::ICanIface* Can::getIface(uavcan::uint8_t iface_index)
+{
+	return (iface_index == 0) ? this : nullptr;
+}
+
+
+
+uavcan::uint8_t Can::getNumIfaces() const
+{
+	return 1;
+}
+
+#endif
 
 }
 }

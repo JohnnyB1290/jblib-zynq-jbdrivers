@@ -437,7 +437,7 @@ void GemAdapter::getParameter(const uint8_t number, void* const value)
 	if(number == PARAMETER_MAC)
 		*((uint8_t**)value) = macs_[this->number_];
 	else if(number == PARAMETER_LINK)
-		*((uint8_t*)value) = this->checkLink();
+		*((bool*)value) = this->checkLink();
 	else if(number == PARAMETER_TX_UNLOCK)
 		*((uint8_t*)value) = this->txUnlocked_;
 	else if(number == PARAMETER_NAME)

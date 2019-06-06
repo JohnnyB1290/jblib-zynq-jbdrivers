@@ -32,7 +32,7 @@
 #include "RingBuffer.hpp"
 #if CAN_USE_UAVCAN
 #include "uavcan/driver/can.hpp"
-#include "jbuavcan/clock.hpp"
+#include "SystemClock.hpp"
 #endif
 
 #ifdef CAN_TX_QUEUE_SIZE
@@ -47,10 +47,12 @@
 	#endif
 #endif
 
+
 namespace jblib
 {
 namespace jbdrivers
 {
+
 
 using namespace jbutilities;
 #if CAN_USE_UAVCAN
@@ -70,18 +72,45 @@ typedef struct
 }CanFrame_t;
 #pragma pack(pop)
 
-
+#if CAN_USE_UAVCAN
+class Can : protected IIrqListener, public ICanDriver, public ICanIface
+#else
 class Can : protected IIrqListener
+#endif
 {
 public:
 	static Can* getCan(uint8_t number);
+	#if CAN_USE_UAVCAN
+	void initialize(uint32_t speedBitS, SystemClock* systemClock);
+	#else
 	void initialize(uint32_t speedBitS);
+	#endif
 	void deinitialize(void);
-	void pushToTxQueue(uint32_t id, uint8_t* data, uint8_t size);
-	void pushToTxQueue(uint32_t id, uint8_t* data,
-			uint8_t size, bool extId);
+	void pushToTxQueue(uint32_t id, const uint8_t* data, const uint8_t size);
+	void pushToTxQueue(uint32_t id, const uint8_t* data,
+			const uint8_t size, bool extId);
 	uint8_t pullFromRxQueue(uint32_t* id, uint8_t* data);
 	uint8_t pullFromRxQueue(uint32_t* id, uint8_t* data, bool* extId);
+	#if CAN_USE_UAVCAN
+	uint8_t pullFromRxQueue(uint32_t* id, uint8_t* data,
+			bool* extId, uint64_t* timestamp);
+	uavcan::int16_t send(const uavcan::CanFrame& frame,
+	                         uavcan::MonotonicTime tx_deadline,
+	                         uavcan::CanIOFlags flags) override;
+	uavcan::int16_t receive(uavcan::CanFrame& out_frame,
+							uavcan::MonotonicTime& out_ts_monotonic,
+							uavcan::UtcTime& out_ts_utc,
+							uavcan::CanIOFlags& out_flags) override;
+	uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks,
+						   const uavcan::CanFrame* (&)[uavcan::MaxCanIfaces],
+						   uavcan::MonotonicTime blocking_deadline) override;
+	uavcan::int16_t configureFilters(const uavcan::CanFilterConfig* filter_configs,
+									 uavcan::uint16_t num_configs) override;
+	uavcan::uint64_t getErrorCount() const override;
+	uavcan::uint16_t getNumFilters() const override;
+	uavcan::ICanIface* getIface(uavcan::uint8_t iface_index) override;
+	uavcan::uint8_t getNumIfaces() const override;
+	#endif
 
 private:
 	Can(uint8_t number);
@@ -112,6 +141,12 @@ private:
 	uint8_t syncJumpWidth_ = 3;
 	uint8_t timeSegment2_ = 2;
 	uint8_t timeSegment1_ = 15;
+
+	#if CAN_USE_UAVCAN
+	SystemClock* systemClock_ = NULL;
+	uint32_t rxQueueOverflowCnt_ = 0;
+	uint32_t txQueueOverflowCnt_ = 0;
+	#endif
 };
 
 }
