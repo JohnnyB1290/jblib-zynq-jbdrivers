@@ -436,10 +436,18 @@ void GemAdapter::getParameter(const uint8_t number, void* const value)
 {
 	if(number == PARAMETER_MAC)
 		*((uint8_t**)value) = macs_[this->number_];
-	else if(number == PARAMETER_LINK)
-		*((bool*)value) = this->checkLink();
-	else if(number == PARAMETER_TX_UNLOCK)
-		*((uint8_t*)value) = this->txUnlocked_;
+	else if(number == PARAMETER_LINK){
+		if(this->checkLink())
+			*((uint32_t*)value) = 1;
+		else
+			*((uint32_t*)value) = 0;
+	}
+	else if(number == PARAMETER_TX_UNLOCK){
+		if(this->txUnlocked_)
+			*((uint32_t*)value) = 1;
+		else
+			*((uint32_t*)value) = 0;
+	}
 	else if(number == PARAMETER_NAME)
 		*((char**)value) = (char*)this->name_;
 }
@@ -450,8 +458,12 @@ void GemAdapter::setParameter(const uint8_t number, void* const value)
 {
 	if(number == PARAMETER_MAC)
 		memcpy(macs_[this->number_], value, 6);
-	else if(number == PARAMETER_TX_UNLOCK)
-		this->txUnlocked_ = *((bool*)value);
+	else if(number == PARAMETER_TX_UNLOCK){
+		if(*((uint32_t*)value))
+			this->txUnlocked_ = true;
+		else
+			this->txUnlocked_ = false;
+	}
 	else if(number == PARAMETER_NAME)
 		memcpy(this->name_, value, 9);
 	else if(number == PARAMETER_SPEED)

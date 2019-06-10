@@ -184,15 +184,15 @@ void AxiUart16550::getParameter(const uint8_t number, void* const value)
 		if(number == PARAMETER_CTS) {
 			uint8_t mctrlReg = (u8)XUartNs550_ReadReg(baseAddresses_[this->number_],
 							XUN_MSR_OFFSET);
-			uint8_t ctsSignal = (mctrlReg & 16) >> 4;
+			uint32_t ctsSignal = (mctrlReg & 16) >> 4;
 			ctsSignal ^= 1;
-			*((uint8_t*)value) = ctsSignal;
+			*((uint32_t*)value) = ctsSignal;
 		}
 		else if(number == PARAMETER_IS_TX_EMPTY) {
 			if(this->txRingBuffer_->getCount())
-				*((uint8_t*)value) = 0;
+				*((uint32_t*)value) = 0;
 			else
-				*((uint8_t*)value) = 1;
+				*((uint32_t*)value) = 1;
 		}
 	}
 }
