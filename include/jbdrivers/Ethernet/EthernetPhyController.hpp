@@ -26,8 +26,8 @@
 #ifndef ETHERNET_PHY_CONTROLLER_HPP_
 #define ETHERNET_PHY_CONTROLLER_HPP_
 
-#include "jb_common.h"
-#include "Ethernet/MdioController.hpp"
+#include "jbkernel/jb_common.h"
+#include "jbdrivers/Ethernet/MdioController.hpp"
 
 namespace jblib
 {

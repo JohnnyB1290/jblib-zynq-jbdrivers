@@ -26,9 +26,9 @@
 #ifndef PRIVATE_VOID_TIMER_HPP_
 #define PRIVATE_VOID_TIMER_HPP_
 
-#include "jb_common.h"
-#include "IVoidTimer.hpp"
-#include "IrqController.hpp"
+#include "jbkernel/jb_common.h"
+#include "jbkernel/IVoidTimer.hpp"
+#include "jbdrivers/IrqController.hpp"
 #include "xscutimer.h"
 
 namespace jblib

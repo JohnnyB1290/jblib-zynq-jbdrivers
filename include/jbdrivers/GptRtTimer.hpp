@@ -27,9 +27,9 @@
 #ifndef GPT_RT_TIMER_HPP_
 #define GPT_RT_TIMER_HPP_
 
-#include "jb_common.h"
-#include "IrqController.hpp"
-#include "IRtTimer.hpp"
+#include "jbkernel/jb_common.h"
+#include "jbdrivers/IrqController.hpp"
+#include "jbkernel/IRtTimer.hpp"
 
 #define GPT_NUM_MATCHES 	24
 

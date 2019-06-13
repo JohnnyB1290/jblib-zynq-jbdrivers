@@ -26,9 +26,9 @@
 #ifndef AXI_VOID_TIMER_HPP_
 #define AXI_VOID_TIMER_HPP_
 
-#include "jb_common.h"
-#include "IVoidTimer.hpp"
-#include "IrqController.hpp"
+#include "jbkernel/jb_common.h"
+#include "jbkernel/IVoidTimer.hpp"
+#include "jbdrivers/IrqController.hpp"
 #include "xtmrctr.h"
 
 namespace jblib

@@ -28,8 +28,8 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
 #include <string.h>
-#include "Ethernet/GemAdapter.hpp"
-#include "JbController.hpp"
+#include "jbdrivers/Ethernet/GemAdapter.hpp"
+#include "jbdrivers/JbController.hpp"
 #include "sleep.h"
 #include "xil_mmu.h"
 #include "xil_cache.h"

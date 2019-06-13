@@ -29,7 +29,7 @@
 
 #include <stdio.h>
 #include "sleep.h"
-#include "Ethernet/MdioController.hpp"
+#include "jbdrivers/Ethernet/MdioController.hpp"
 #if (USE_CONSOLE && ETHERNET_PHY_USE_CONSOLE)
 #include <stdio.h>
 #endif

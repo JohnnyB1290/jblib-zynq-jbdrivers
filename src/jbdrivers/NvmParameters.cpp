@@ -27,14 +27,13 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
-#include "jb_common.h"
+#include "jbkernel/jb_common.h"
 #if JBDRIVERS_USE_QSPI_FLASH
 #include <string.h>
 #include <stdlib.h>
-#include "NvmParameters.hpp"
-#include "QspiFlash.hpp"
-#include "Crc.hpp"
-//#include "xil_exception.h"
+#include "jbdrivers/NvmParameters.hpp"
+#include "jbdrivers/QspiFlash.hpp"
+#include "jbutilities/Crc.hpp"
 #if USE_CONSOLE
 #include <stdio.h>
 #endif

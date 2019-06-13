@@ -27,10 +27,10 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
-#include "jb_common.h"
+#include "jbkernel/jb_common.h"
 #if JBDRIVERS_USE_AXI_UART_16550
 
-#include "AxiUart16550.hpp"
+#include "jbdrivers/AxiUart16550.hpp"
 #include "xuartns550_l.h"
 
 namespace jblib

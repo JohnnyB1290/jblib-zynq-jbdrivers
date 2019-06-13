@@ -26,13 +26,13 @@
 #ifndef GEM_ADAPTER_HPP_
 #define GEM_ADAPTER_HPP_
 
-#include "jb_common.h"
-#include "callback_interfaces.hpp"
-#include "IVoidEthernet.hpp"
-#include "IrqController.hpp"
-#include "Ethernet/MdioController.hpp"
-#include "Ethernet/GmiiRgmiiAdapter.hpp"
-#include "Ethernet/EthernetPhyController.hpp"
+#include "jbkernel/jb_common.h"
+#include "jbkernel/callback_interfaces.hpp"
+#include "jbkernel/IVoidEthernet.hpp"
+#include "jbdrivers/IrqController.hpp"
+#include "jbdrivers/Ethernet/MdioController.hpp"
+#include "jbdrivers/Ethernet/GmiiRgmiiAdapter.hpp"
+#include "jbdrivers/Ethernet/EthernetPhyController.hpp"
 #include "xemacps.h"
 
 #define GEM_ADAPTER_NUM_GEM 2

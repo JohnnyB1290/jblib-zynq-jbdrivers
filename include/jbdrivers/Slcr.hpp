@@ -26,7 +26,7 @@
 #ifndef SLCR_HPP_
 #define SLCR_HPP_
 
-#include "jb_common.h"
+#include "jbkernel/jb_common.h"
 
 #define DCFG_DEVICE_ID					XPAR_XDCFG_0_DEVICE_ID
 

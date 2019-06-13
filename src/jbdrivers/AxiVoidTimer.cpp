@@ -27,10 +27,10 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
-#include "jb_common.h"
+#include "jbkernel/jb_common.h"
 #if JBDRIVERS_USE_AXI_TIMER
 
-#include "AxiVoidTimer.hpp"
+#include "jbdrivers/AxiVoidTimer.hpp"
 
 namespace jblib
 {

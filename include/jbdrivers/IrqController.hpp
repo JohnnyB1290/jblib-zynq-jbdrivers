@@ -26,7 +26,7 @@
 #ifndef IRQ_CONTROLLER_HPP_
 #define IRQ_CONTROLLER_HPP_
 
-#include "jb_common.h"
+#include "jbkernel/jb_common.h"
 #include "xil_exception.h"
 #include "xscugic.h"
 

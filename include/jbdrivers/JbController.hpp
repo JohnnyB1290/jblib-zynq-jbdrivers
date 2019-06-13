@@ -27,10 +27,10 @@
 #define JB_CONTROLLER_HPP_
 
 #ifdef CORE_A9_0
-#include "JbControllerA90.hpp"
+#include "jbdrivers/JbControllerA90.hpp"
 #endif
 #ifdef CORE_A9_1
-#include "JbControllerA91.hpp"
+#include "jbdrivers/JbControllerA91.hpp"
 #endif
 
 

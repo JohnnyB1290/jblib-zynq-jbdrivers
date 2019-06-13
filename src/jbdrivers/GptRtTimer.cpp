@@ -27,9 +27,9 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
-#include "jb_common.h"
+#include "jbkernel/jb_common.h"
 #if JBDRIVERS_USE_GPT
-#include "GptRtTimer.hpp"
+#include "jbdrivers/GptRtTimer.hpp"
 
 #define TCSR_REG_OFFSET				0x00
 #define TLR_REG_OFFSET				0x04

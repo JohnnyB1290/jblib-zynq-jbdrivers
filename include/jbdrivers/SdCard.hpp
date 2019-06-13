@@ -26,8 +26,8 @@
 #ifndef SD_CARD_HPP_
 #define SD_CARD_HPP_
 
-#include "jb_common.h"
-#include "IStorageDevice.hpp"
+#include "jbkernel/jb_common.h"
+#include "jbfatfs/IStorageDevice.hpp"
 #include "xsdps.h"
 
 namespace jblib

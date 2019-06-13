@@ -27,9 +27,9 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
-#include "Ethernet/EthernetPhyController.hpp"
+#include "jbdrivers/Ethernet/EthernetPhyController.hpp"
 #include "sleep.h"
-#include "JbController.hpp"
+#include "jbdrivers/JbController.hpp"
 #if (USE_CONSOLE && ETHERNET_PHY_USE_CONSOLE)
 #include <stdio.h>
 #endif

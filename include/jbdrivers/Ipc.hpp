@@ -26,10 +26,10 @@
 #ifndef IPC_HPP_
 #define IPC_HPP_
 
-#include "jb_common.h"
-#include "callback_interfaces.hpp"
-#include "IrqController.hpp"
-#include "IIpc.hpp"
+#include "jbkernel/jb_common.h"
+#include "jbkernel/callback_interfaces.hpp"
+#include "jbdrivers/IrqController.hpp"
+#include "jbkernel/IIpc.hpp"
 
 namespace jblib
 {

@@ -26,13 +26,13 @@
 #ifndef CAN_HPP_
 #define CAN_HPP_
 
-#include "jb_common.h"
-#include "IrqController.hpp"
+#include "jbkernel/jb_common.h"
+#include "jbdrivers/IrqController.hpp"
 #include "xcanps.h"
-#include "RingBuffer.hpp"
+#include "jbutilities/RingBuffer.hpp"
 #if CAN_USE_UAVCAN
 #include "uavcan/driver/can.hpp"
-#include "SystemClock.hpp"
+#include "jbuavcan/SystemClock.hpp"
 #endif
 
 #ifdef CAN_TX_QUEUE_SIZE

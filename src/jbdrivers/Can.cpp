@@ -29,10 +29,10 @@
 
 
 
-#include "jb_common.h"
+#include "jbkernel/jb_common.h"
 #if JBDRIVERS_USE_CAN
 #include <string.h>
-#include "Can.hpp"
+#include "jbdrivers/Can.hpp"
 #if CAN_USE_UAVCAN
 #include <uavcan/util/templates.hpp>
 #endif

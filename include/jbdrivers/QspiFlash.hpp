@@ -26,10 +26,10 @@
 #ifndef QSPI_FLASH_HPP_
 #define QSPI_FLASH_HPP_
 
-#include "jb_common.h"
+#include "jbkernel/jb_common.h"
 #include "xqspips.h"		/* QSPI device driver */
 #if QSPI_FLASH_USE_FILE_SYSTEM
-#include "IStorageDevice.hpp"
+#include "jbfatfs/IStorageDevice.hpp"
 #endif
 
 namespace jblib

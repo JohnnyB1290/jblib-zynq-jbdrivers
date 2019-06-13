@@ -27,10 +27,10 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
-#include "jb_common.h"
+#include "jbkernel/jb_common.h"
 #if JBDRIVERS_USE_PRIVATE_TIMER
 
-#include "PrivateVoidTimer.hpp"
+#include "jbdrivers/PrivateVoidTimer.hpp"
 
 namespace jblib
 {

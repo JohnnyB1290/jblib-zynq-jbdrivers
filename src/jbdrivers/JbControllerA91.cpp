@@ -29,9 +29,9 @@
 
 #ifdef CORE_A9_1
 #include <string.h>
-#include "JbControllerA90.hpp"
+#include "jbdrivers/JbControllerA91.hpp"
 #if JBDRIVERS_USE_PRIVATE_TIMER
-#include "PrivateVoidTimer.hpp"
+#include "jbdrivers/PrivateVoidTimer.hpp"
 #endif
 #ifdef USE_CONSOLE
 #include <stdio.h>

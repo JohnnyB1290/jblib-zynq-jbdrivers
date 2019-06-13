@@ -27,7 +27,7 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
-#include "IrqController.hpp"
+#include "jbdrivers/IrqController.hpp"
 #ifdef USE_CONSOLE
 #include <stdio.h>
 #endif

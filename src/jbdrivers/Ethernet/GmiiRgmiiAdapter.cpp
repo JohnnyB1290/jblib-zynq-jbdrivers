@@ -27,7 +27,7 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
-#include "Ethernet/GmiiRgmiiAdapter.hpp"
+#include "jbdrivers/Ethernet/GmiiRgmiiAdapter.hpp"
 
 namespace jblib
 {

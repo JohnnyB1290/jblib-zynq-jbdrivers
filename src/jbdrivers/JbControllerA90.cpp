@@ -29,14 +29,14 @@
 
 #ifdef CORE_A9_0
 #include <string.h>
-#include "JbControllerA90.hpp"
-#include "IrqController.hpp"
-#include "Slcr.hpp"
+#include "jbdrivers/JbControllerA90.hpp"
+#include "jbdrivers/IrqController.hpp"
+#include "jbdrivers/Slcr.hpp"
 #include "xdevcfg.h"
 #include "xil_mmu.h"
 #include "xil_cache_l.h"
 #if JBDRIVERS_USE_PRIVATE_TIMER
-#include "PrivateVoidTimer.hpp"
+#include "jbdrivers/PrivateVoidTimer.hpp"
 #endif
 #ifdef USE_CONSOLE
 #include <stdio.h>

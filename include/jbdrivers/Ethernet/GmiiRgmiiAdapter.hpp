@@ -26,8 +26,8 @@
 #ifndef GMII_RGMII_ADAPTER_HPP_
 #define GMII_RGMII_ADAPTER_HPP_
 
-#include "jb_common.h"
-#include "Ethernet/MdioController.hpp"
+#include "jbkernel/jb_common.h"
+#include "jbdrivers/Ethernet/MdioController.hpp"
 #include "xbram.h"
 
 

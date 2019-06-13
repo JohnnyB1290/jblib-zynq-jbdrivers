@@ -26,8 +26,8 @@
 #ifndef NVMPARAMETERS_HPP_
 #define NVMPARAMETERS_HPP_
 
-#include "jb_common.h"
-#include "INvmParameters.hpp"
+#include "jbkernel/jb_common.h"
+#include "jbkernel/INvmParameters.hpp"
 
 namespace jblib
 {

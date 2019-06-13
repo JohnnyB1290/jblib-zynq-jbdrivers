@@ -26,10 +26,10 @@
 #ifndef AXI_UART_16550_HPP_
 #define AXI_UART_16550_HPP_
 
-#include "jb_common.h"
-#include "IVoidChannel.hpp"
-#include "IrqController.hpp"
-#include "RingBuffer.hpp"
+#include "jbkernel/jb_common.h"
+#include "jbkernel/IVoidChannel.hpp"
+#include "jbdrivers/IrqController.hpp"
+#include "jbutilities/RingBuffer.hpp"
 
 namespace jblib
 {

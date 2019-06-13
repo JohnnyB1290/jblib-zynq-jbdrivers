@@ -26,7 +26,7 @@
 #ifndef MDIO_CONTROLLER_HPP_
 #define MDIO_CONTROLLER_HPP_
 
-#include "jb_common.h"
+#include "jbkernel/jb_common.h"
 
 #define MDIO_CONTROLLER_NUM_MDIO 2
 

@@ -27,13 +27,13 @@
 #define JB_CONTROLLER_A9_0_HPP_
 
 #include <stdint.h>
-#include "jb_common.h"
-#include "callback_interfaces.hpp"
+#include "jbkernel/jb_common.h"
+#include "jbkernel/callback_interfaces.hpp"
 #include "xgpiops.h"
 #include "xbram.h"
 #if USE_CONSOLE
 #include <stdio.h>
-#include "Console.hpp"
+#include "jbkernel/Console.hpp"
 #endif
 
 namespace jblib
