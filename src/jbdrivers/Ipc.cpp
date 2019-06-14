@@ -71,7 +71,7 @@ Ipc* Ipc::getIpc(uint8_t gate)
 
 
 
-Ipc::Ipc(uint8_t gate) : IIPC(), IIrqListener()
+Ipc::Ipc(uint8_t gate) : IIpc(), IIrqListener()
 {
 	#ifdef CORE_A9_0
 	this->writeQueue_ = (IpcQueue_t*)IPC_SHARED_MEMORY_A9_0_GATE;

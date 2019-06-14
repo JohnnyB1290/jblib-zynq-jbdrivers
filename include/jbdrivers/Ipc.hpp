@@ -44,7 +44,7 @@ typedef enum
 	GATE_CORE_A9_1 = 1,
 }IpcGate_t;
 
-class Ipc : public IIPC, protected IIrqListener
+class Ipc : public IIpc, protected IIrqListener
 {
 public:
 	static Ipc* getIpc(uint8_t gate);
