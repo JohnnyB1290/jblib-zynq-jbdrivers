@@ -494,6 +494,7 @@ void GemAdapter::addToTxQueue(EthernetFrame* const frame, uint16_t frameSize)
 			#if (USE_CONSOLE && ETHERNET_PHY_USE_CONSOLE)
 			printf("GEM Adapter: TX queue overflow\r\n");
 			#endif
+			enableInterrupts();
 			return;
 		}
 		uint16_t qIndex = this->txQueue_.queueBw;
@@ -525,6 +526,7 @@ void GemAdapter::addToTxQueue(struct pbuf* p)
 			#if (USE_CONSOLE && ETHERNET_PHY_USE_CONSOLE)
 			printf("GEM Adapter: TX queue overflow\r\n");
 			#endif
+			enableInterrupts();
 			return;
 		}
 		uint16_t qIndex = this->txQueue_.queueBw;
