@@ -123,7 +123,7 @@ void NvmParameters::setParameter(NvmParametersCell_t* cell)
 {
 	if(baseAddress_ == 0)
 		return;
-	__disable_irq();
+	disableInterrupts();
 	NvmParametersHeader_t tempHeader;
 	memcpy(&tempHeader, parametersHeader_, parametersHeaderSize_);
 	NvmParametersCell_t* tempCell = this->getParameter(cell->description);
@@ -140,7 +140,7 @@ void NvmParameters::setParameter(NvmParametersCell_t* cell)
 	this->saveToNvm();
 	if(cell->uid != 0xFF)
 		memcpy((void*)&this->lastSetCell_, (void*)cell, parametersCellSize_);
-	__enable_irq();
+	enableInterrupts();
 	if((cell->uid != 0xFF) && (this->changeCallback_ != (IVoidCallback*)NULL)){
 		uint32_t tempPtr = cell->uid;
 		this->changeCallback_->voidCallback(this, (void*)tempPtr);
@@ -189,7 +189,7 @@ void NvmParameters::deleteParameter(char* description)
 {
 	if((baseAddress_ == 0) || (parametersHeader_->size == 0))
 		return;
-	__disable_irq();
+	disableInterrupts();
 	NvmParametersHeader_t tempHeader;
 	memcpy(&tempHeader, parametersHeader_, parametersHeaderSize_);
 
@@ -206,21 +206,21 @@ void NvmParameters::deleteParameter(char* description)
 					tempHeader.size * parametersCellSize_);
 	memcpy((void*)parametersHeader_, (void*)&tempHeader, parametersHeaderSize_);
 	this->saveToNvm();
-	__enable_irq();
+	enableInterrupts();
 }
 
 
 
 void NvmParameters::eraseAllParameters(void)
 {
-	__disable_irq();
+	disableInterrupts();
 	NvmParametersHeader_t tempHeader;
 	memset(&tempHeader, 0, parametersHeaderSize_);
 	tempHeader.magic = NVM_PARAMETERS_MAGIC;
 	tempHeader.size = 0;
 	memcpy((void*)parametersHeader_, (void*)&tempHeader, parametersHeaderSize_);
 	this->saveToNvm();
-	__enable_irq();
+	enableInterrupts();
 }
 
 
@@ -241,11 +241,11 @@ uint32_t NvmParameters::getParametersSize(void)
 
 void NvmParameters::setAllParameters(void* ptr)
 {
-	__disable_irq();
+	disableInterrupts();
 	memcpy((void*)parametersHeader_, (void*)ptr,
 			parametersCellSize_ * ((NvmParametersHeader_t*)ptr)->size);
 	this->saveToNvm();
-	__enable_irq();
+	enableInterrupts();
 }
 
 

@@ -486,7 +486,7 @@ bool GemAdapter::isTxQueueFull(void)
 
 void GemAdapter::addToTxQueue(EthernetFrame* const frame, uint16_t frameSize)
 {
-	__disable_irq();
+	disableInterrupts();
 	if(this->txUnlocked_) {
 		uint16_t count = D_A_MIN_B_MOD_C(this->txQueue_.queueBw,
 				this->txQueue_.queueBr, GEM_ADAPTER_TX_QUEUE_SIZE);
@@ -504,7 +504,7 @@ void GemAdapter::addToTxQueue(EthernetFrame* const frame, uint16_t frameSize)
 			this->txQueue_.queueBw = 0;
 	}
 	this->pushTxQueue();
-	__enable_irq();
+	enableInterrupts();
 }
 
 
@@ -517,7 +517,7 @@ void GemAdapter::addToTxQueue(struct pbuf* p)
 	uint16_t frameSize = p->tot_len;
 	if(frameSize == 0)
 		return;
-	__disable_irq();
+	disableInterrupts();
 	if(this->txUnlocked_) {
 		uint16_t count = D_A_MIN_B_MOD_C(this->txQueue_.queueBw,
 				this->txQueue_.queueBr, GEM_ADAPTER_TX_QUEUE_SIZE);
@@ -545,7 +545,7 @@ void GemAdapter::addToTxQueue(struct pbuf* p)
 			this->txQueue_.queueBw = 0;
 	}
 	this->pushTxQueue();
-	__enable_irq();
+	enableInterrupts();
 }
 #endif
 
