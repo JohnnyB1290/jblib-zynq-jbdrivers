@@ -74,7 +74,7 @@ void JbController::initialize(void)
 			XGpioPs_SetDirectionPin(&gpioPs_, boardGpios_[i], 1);
 			XGpioPs_SetOutputEnablePin(&gpioPs_, boardGpios_[i], 1);
 			/* Set the GPIO output to be low. */
-			XGpioPs_WritePin(&gpioPs_, CboardGpios_[i], 0x0);
+			XGpioPs_WritePin(&gpioPs_, boardGpios_[i], 0x0);
 		}
 		isInitialized_ = true;
 	}

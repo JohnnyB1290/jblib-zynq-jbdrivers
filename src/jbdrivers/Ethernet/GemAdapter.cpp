@@ -510,7 +510,7 @@ void GemAdapter::addToTxQueue(EthernetFrame* const frame, uint16_t frameSize)
 
 
 
-#ifdef USE_LWIP
+#if USE_LWIP
 void GemAdapter::addToTxQueue(struct pbuf* p)
 {
 	if(p == NULL)
