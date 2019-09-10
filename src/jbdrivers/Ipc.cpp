@@ -92,6 +92,10 @@ Ipc::Ipc(uint8_t gate) : IIpc(), IIrqListener()
 	this->writeQueue_->size = IPC_QUEUE_SIZE;
 	this->writeQueue_->itemSize = sizeof(IpcMsg_t);
 	this->writeQueue_->valid = IPC_QUEUE_MAGIC_VALID;
+	this->writeQueue_->head = 0;
+	this->writeQueue_->tail = 0;
+	this->writeQueue_->reserved[0] = 0;
+	this->writeQueue_->reserved[1] = 0;
 
 	IrqController::getIrqController()->addPeripheralIrqListener(this, IPC_INTERRUPT_ID);
 	IrqController::getIrqController()->setPriority(IPC_INTERRUPT_ID,
