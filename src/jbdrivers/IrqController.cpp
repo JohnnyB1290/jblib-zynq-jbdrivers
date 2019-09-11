@@ -95,6 +95,17 @@ IrqController::IrqController(void)
 
 void IrqController::enableInterrupt(u32 interruptId)
 {
+	if(interruptId >= 32) {
+#ifdef CORE_A9_0
+	XScuGic_InterruptMaptoCpu(&this->xScuGic_, 0, interruptId);
+	XScuGic_InterruptUnmapFromCpu(&this->xScuGic_, 1, interruptId);
+#endif
+#ifdef CORE_A9_1
+	XScuGic_InterruptMaptoCpu(&this->xScuGic_, 1, interruptId);
+	XScuGic_InterruptUnmapFromCpu(&this->xScuGic_, 0, interruptId);
+#endif
+	}
+
 	XScuGic_Connect(&this->xScuGic_, interruptId,
 			(Xil_InterruptHandler)irqHandler, (void*)interruptId);
 	XScuGic_Enable(&this->xScuGic_, interruptId);
