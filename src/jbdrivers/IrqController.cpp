@@ -175,19 +175,20 @@ void IrqController::deletePeripheralIrqListener(ListenersListItem& listenerItem)
 void IrqController::irqHandler(void* irqNumber)
 {
 	Xil_EnableNestedInterrupts();
+	IrqController* irqController = IrqController::getIrqController();
 	uint32_t irqNumberUint = (uint32_t)irqNumber;
-	for(std::forward_list<ListenersListItem>::iterator it = irqController_->listenersList_.begin();
-			it != irqController_->listenersList_.end(); ++it){
+	for(std::forward_list<ListenersListItem>::iterator it = irqController->listenersList_.begin();
+			it != irqController->listenersList_.end(); ++it){
 		if(it->irqNumber == irqNumberUint){
 			it->listener->irqHandler(irqNumberUint);
 		}
 	}
-	if(!irqController_->listenersDeleteList_.empty()){
-		for(std::forward_list<ListenersListItem>::iterator it = irqController_->listenersDeleteList_.begin();
-				it != irqController_->listenersDeleteList_.end(); ++it){
-			irqController_->deletePeripheralIrqListener(*it);
+	if(!irqController->listenersDeleteList_.empty()){
+		for(std::forward_list<ListenersListItem>::iterator it = irqController->listenersDeleteList_.begin();
+				it != irqController->listenersDeleteList_.end(); ++it){
+			irqController->deletePeripheralIrqListener(*it);
 		}
-		irqController_->listenersDeleteList_.clear();
+		irqController->listenersDeleteList_.clear();
 	}
 	Xil_DisableNestedInterrupts();
 }
