@@ -84,8 +84,6 @@ Ipc::Ipc(uint8_t gate) : IIpc(), IIrqListener()
 	this->writeQueue_->data = (uint8_t*)(IPC_SHARED_MEMORY_A9_1_GATE + sizeof(IpcQueue_t));
 	#endif
 
-	for(uint32_t i = 0; i < IPC_NUM_LISTENERS; i++)
-		this->listeners_[i] = (IIpcListener*)NULL;
 	for(uint32_t i = 0; i < IPC_NUM_GLOBAL_VALUES; i++)
 		this->globalValues_[i] = 0;
 
@@ -108,14 +106,7 @@ Ipc::Ipc(uint8_t gate) : IIpc(), IIrqListener()
 
 void Ipc::addIpcListener(IIpcListener* listener)
 {
-	for(uint32_t i = 0; i < IPC_NUM_LISTENERS; i++) {
-		if(this->listeners_[i] == listener)
-			break;
-		if(this->listeners_[i] == (IIpcListener*)NULL) {
-			this->listeners_[i] = listener;
-			break;
-		}
-	}
+	this->listenersList_.push_front(listener);
 }
 
 
@@ -123,24 +114,7 @@ void Ipc::addIpcListener(IIpcListener* listener)
 
 void Ipc::deleteIpcListener(IIpcListener* listener)
 {
-	uint32_t index = 0;
-	for(uint32_t i = 0; i < IPC_NUM_LISTENERS; i++) {
-		if(this->listeners_[i] == listener)
-			break;
-		else
-			index++;
-	}
-	if(index == (IPC_NUM_LISTENERS-1)) {
-		if(this->listeners_[index] == listener)
-			this->listeners_[index] = (IIpcListener*)NULL;
-	}
-	else {
-		for(uint32_t i = index; i < (IPC_NUM_LISTENERS-1); i++) {
-			this->listeners_[i] = this->listeners_[i+1];
-			if(this->listeners_[i+1] == (IIpcListener*)NULL)
-				break;
-		}
-	}
+	this->listenersDeleteList_.push_front(listener);
 }
 
 
@@ -168,12 +142,25 @@ void Ipc::irqHandler(uint32_t irqNumber)
 			}
 			else if(msg.id == IPC_MSG_ID_FREE_MEMORY)
 				free_s((void *)msg.data);
-			for(uint32_t i = 0; i < IPC_NUM_LISTENERS; i++) {
-				if(this->listeners_[i] != (IIpcListener*)NULL) {
-					if(((this->listeners_[i]->getCode()) >> msg.id) & 1)
-						this->listeners_[i]->handleIpcMsg(&msg);
+			for(std::forward_list<IIpcListener*>::iterator it = this->listenersList_.begin();
+					it != this->listenersList_.end(); ++it){
+				IIpcListener* listener = *it;
+				if(((listener->getCode()) >> msg.id) & 1){
+					listener->handleIpcMsg(&msg);
 				}
-				else break;
+			}
+			if(!this->listenersDeleteList_.empty()){
+				for(std::forward_list<IIpcListener*>::iterator it = this->listenersDeleteList_.begin();
+						it != this->listenersDeleteList_.end(); ++it){
+					IIpcListener* listener = *it;
+					this->listenersList_.remove_if([listener](IIpcListener* item){
+						if(listener == item)
+							return true;
+						else
+							 return false;
+					});
+				}
+				this->listenersDeleteList_.clear();
 			}
 		}
 	}
@@ -183,6 +170,7 @@ void Ipc::irqHandler(uint32_t irqNumber)
 
 int Ipc::pushMsg(uint32_t id, uint32_t data)
 {
+	disableInterrupts();
 	IpcMsg_t msg;
 	#ifdef CORE_A9_0
 	msg.sender = GATE_CORE_A9_0;
@@ -193,15 +181,19 @@ int Ipc::pushMsg(uint32_t id, uint32_t data)
 	msg.id = id;
 	msg.data = data;
 
-	if (!IPC_QUEUE_IS_VALID(this->writeQueue_))
+	if (!IPC_QUEUE_IS_VALID(this->writeQueue_)){
+		enableInterrupts();
 		return IPC_QUEUE_ERROR;
-	if (IPC_QUEUE_IS_FULL(this->writeQueue_))
+	}
+	if (IPC_QUEUE_IS_FULL(this->writeQueue_)){
+		enableInterrupts();
 		return IPC_QUEUE_FULL;
+	}
 	memcpy(this->writeQueue_->data + (HEAD_INDEX(this->writeQueue_) * this->writeQueue_->itemSize),
 			&msg, this->writeQueue_->itemSize);
 	this->writeQueue_->head++;
 	this->sendInterrupt();
-
+	enableInterrupts();
 	return IPC_QUEUE_INSERT;
 }
 

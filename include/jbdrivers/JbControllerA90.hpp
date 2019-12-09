@@ -28,13 +28,9 @@
 
 #include <stdint.h>
 #include "jbkernel/jb_common.h"
-#include "jbkernel/callback_interfaces.hpp"
+#include "jbkernel/JbKernel.hpp"
 #include "xgpiops.h"
 #include "xbram.h"
-#if USE_CONSOLE
-#include <stdio.h>
-#include "jbkernel/Console.hpp"
-#endif
 
 namespace jblib
 {
@@ -43,36 +39,19 @@ namespace jbdrivers
 
 using namespace jbkernel;
 
-class JbController
+class JbController : public JbKernel
 {
 public:
 	static void initialize(void);
-	static void doMain(void);
-	static void addMainProcedure(IVoidCallback* callback);
-	static void addMainProcedure(IVoidCallback* callback, void* parameter);
-	static void deleteMainProcedure(IVoidCallback* callback);
-	static void deleteMainProcedure(IVoidCallback* callback, void* parameter);
-	static void delayMs(uint32_t ms);
-	static void delayUs(uint32_t us);
 	static void gpioOn(uint8_t number);
 	static void gpioOff(uint8_t number);
 	static void gpioTgl(uint8_t number);
 	static void startA91Core(uint32_t imageAddress);
 	static void goToApp(uint32_t applicationAddress);
-	static uint32_t getHeapFree(void);
-#if USE_CONSOLE
-	static Console* getConsole(void)
-	{
-		return Console::getConsole();
-	}
-#endif
 
 private:
 	static XGpioPs gpioPs_;
 	static uint32_t boardGpios_[];
-	static bool isInitialized_;
-	static IVoidCallback* mainProcedures_[JBCONTROLLER_NUM_MAIN_PROCEDURES];
-	static void* mainProceduresParameters_[JBCONTROLLER_NUM_MAIN_PROCEDURES];
 };
 
 }

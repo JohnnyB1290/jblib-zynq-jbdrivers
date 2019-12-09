@@ -52,13 +52,9 @@ IrqController* IrqController::getIrqController(void)
 
 IrqController::IrqController(void)
 {
-	for(uint32_t i = 0; i < IRQ_CONTROLLER_NUM_PERIPHERAL_LISTENERS; i++) {
-		this->irqListeners_[i] = (IIrqListener*)NULL;
-		this->irqListenersInterruptIds_[i] = 0;
-	}
-	for(uint32_t i = 0; i < XSCUGIC_MAX_NUM_INTR_INPUTS; i++)
+	for(uint32_t i = 0; i < XSCUGIC_MAX_NUM_INTR_INPUTS; i++){
 		XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_EOI_OFFSET, i);
-
+	}
 	this->xScuGicConfig_ = XScuGic_LookupConfig(IRQ_CONTROLLER_DEVICE_ID);
 	this->xScuGic_.Config = this->xScuGicConfig_;
 	XScuGic_CfgInitialize(&this->xScuGic_, this->xScuGicConfig_,
@@ -88,7 +84,7 @@ IrqController::IrqController(void)
 	Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_FIQ_INT,
 				(Xil_ExceptionHandler) fiqInterruptHandler,
 				&this->xScuGic_);
-	Xil_ExceptionEnable();
+	enableInterrupts();
 }
 
 
@@ -142,47 +138,36 @@ void IrqController::setPriority(u32 interruptId, u8 priority)
 void IrqController::addPeripheralIrqListener(IIrqListener* listener,
 		uint32_t irqNumber)
 {
-	Xil_ExceptionDisable();
-	for(uint32_t i = 0; i < IRQ_CONTROLLER_NUM_PERIPHERAL_LISTENERS; i++) {
-		if(this->irqListeners_[i] == (IIrqListener*)NULL) {
-			this->irqListeners_[i] = listener;
-			this->irqListenersInterruptIds_[i] = irqNumber;
-			break;
-		}
-	}
-	Xil_ExceptionEnable();
+	disableInterrupts();
+	ListenersListItem newItem;
+	newItem.listener = listener;
+	newItem.irqNumber = irqNumber;
+	this->listenersList_.push_front(newItem);
+	enableInterrupts();
 }
 
 
 
 void IrqController::deletePeripheralIrqListener(IIrqListener* listener)
 {
-	Xil_ExceptionDisable();
-	uint32_t index = 0;
-	for(uint32_t i = 0; i < IRQ_CONTROLLER_NUM_PERIPHERAL_LISTENERS; i++) {
-		if(this->irqListeners_[i] == listener)
-			break;
+	disableInterrupts();
+	ListenersListItem newItem;
+	newItem.listener = listener;
+	this->listenersDeleteList_.push_front(newItem);
+	enableInterrupts();
+}
+
+
+void IrqController::deletePeripheralIrqListener(ListenersListItem& listenerItem)
+{
+	disableInterrupts();
+	this->listenersList_.remove_if([listenerItem](ListenersListItem item){
+		if(listenerItem.listener == item.listener)
+			return true;
 		else
-			index++;
-	}
-	if(index == (IRQ_CONTROLLER_NUM_PERIPHERAL_LISTENERS - 1)) {
-		if(this->irqListeners_[index] == listener) {
-			this->irqListeners_[index] = (IIrqListener*)NULL;
-			this->irqListenersInterruptIds_[index] = 0;
-		}
-	}
-	else {
-		for(uint32_t i = index; i < (IRQ_CONTROLLER_NUM_PERIPHERAL_LISTENERS - 1); i++) {
-			this->irqListeners_[i] = this->irqListeners_[i+1];
-			this->irqListenersInterruptIds_[i] =
-					this->irqListenersInterruptIds_[i+1];
-			if(this->irqListeners_[i+1] == (IIrqListener*)NULL)
-				break;
-		}
-	}
-	Xil_ExceptionEnable();
-	if(index < (IRQ_CONTROLLER_NUM_PERIPHERAL_LISTENERS-1))
-		this->deletePeripheralIrqListener(listener);
+			 return false;
+	});
+	enableInterrupts();
 }
 
 
@@ -191,13 +176,18 @@ void IrqController::irqHandler(void* irqNumber)
 {
 	Xil_EnableNestedInterrupts();
 	uint32_t irqNumberUint = (uint32_t)irqNumber;
-	for(uint32_t i = 0; i < IRQ_CONTROLLER_NUM_PERIPHERAL_LISTENERS; i++) {
-		if(getIrqController()->irqListeners_[i]) {
-			if(getIrqController()->irqListenersInterruptIds_[i] == irqNumberUint)
-				getIrqController()->irqListeners_[i]->irqHandler(irqNumberUint);
+	for(std::forward_list<ListenersListItem>::iterator it = irqController_->listenersList_.begin();
+			it != irqController_->listenersList_.end(); ++it){
+		if(it->irqNumber == irqNumberUint){
+			it->listener->irqHandler(irqNumberUint);
 		}
-		else
-			break;
+	}
+	if(!irqController_->listenersDeleteList_.empty()){
+		for(std::forward_list<ListenersListItem>::iterator it = irqController_->listenersDeleteList_.begin();
+				it != irqController_->listenersDeleteList_.end(); ++it){
+			irqController_->deletePeripheralIrqListener(*it);
+		}
+		irqController_->listenersDeleteList_.clear();
 	}
 	Xil_DisableNestedInterrupts();
 }

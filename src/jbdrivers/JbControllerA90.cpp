@@ -38,9 +38,6 @@
 #if JBDRIVERS_USE_PRIVATE_TIMER
 #include "jbdrivers/PrivateVoidTimer.hpp"
 #endif
-#ifdef USE_CONSOLE
-#include <stdio.h>
-#endif
 
 #ifdef __cplusplus
 extern "C"
@@ -60,19 +57,12 @@ using namespace jbkernel;
 
 uint32_t JbController::boardGpios_[] = JBCONTROLLER_BOARD_GPIOS;
 XGpioPs JbController::gpioPs_;
-bool JbController::isInitialized_ = false;
-IVoidCallback* JbController::mainProcedures_[JBCONTROLLER_NUM_MAIN_PROCEDURES];
-void* JbController::mainProceduresParameters_[JBCONTROLLER_NUM_MAIN_PROCEDURES];
-
 
 
 void JbController::initialize(void)
 {
-	if(!isInitialized_) {
-		for(uint32_t i = 0; i < JBCONTROLLER_NUM_MAIN_PROCEDURES; i++){
-			mainProcedures_[i] = NULL;
-			mainProceduresParameters_[i] = NULL;
-		}
+	static bool isInitialized = false;
+	if(!isInitialized) {
 		XGpioPs_Config* config = XGpioPs_LookupConfig(GPIO_DEVICE_ID);
 		XGpioPs_CfgInitialize(&gpioPs_, config, config->BaseAddr);
 
@@ -82,25 +72,8 @@ void JbController::initialize(void)
 			/* Set the GPIO output to be low. */
 			XGpioPs_WritePin(&gpioPs_, boardGpios_[i], 0x0);
 		}
-		isInitialized_ = true;
+		isInitialized = true;
 	}
-}
-
-
-
-void JbController::delayMs(uint32_t ms)  //For 204MHz Clock
-{
-	for(uint32_t i = 0; i < ms; i++)
-		for(uint32_t j = 0; j < JBCONTROLLER_NUM_NOP_DELAY_MS; j++)
-			asm ("nop");
-}
-
-
-
-void JbController::delayUs(uint32_t us) //For 204MHz Clock
-{
-	for(uint32_t i = 0; i < us * JBCONTROLLER_NUM_NOP_DELAY_US; i++)
-		asm ("nop");
 }
 
 
@@ -160,27 +133,27 @@ void JbController::goToApp(uint32_t applicationAddress)
 	*(volatile unsigned int *)(SLCR_UNLOCK_ADDR) = SLCR_UNLOCK_KEY_VALUE;
 
 	*(volatile unsigned int *)(SLCR_DMAC_RST_CTRL_ADDR) |= 1;
-	delayMs(10);
+	JbKernel::delayMs(10);
 	*(volatile unsigned int *)(SLCR_DMAC_RST_CTRL_ADDR) &= ~1;
 
 	*(volatile unsigned int *)(SLCR_GEM_RST_CTRL_ADDR) |= 0xF3;
-	delayMs(10);
+	JbKernel::delayMs(10);
 	*(volatile unsigned int *)(SLCR_GEM_RST_CTRL_ADDR) &= ~0xF3;
 
 	*(volatile unsigned int *)(SLCR_SDIO_RST_CTRL_ADDR) |= 0x33;
-	delayMs(10);
+	JbKernel::delayMs(10);
 	*(volatile unsigned int *)(SLCR_SDIO_RST_CTRL_ADDR) &= ~0x33;
 
 	*(volatile unsigned int *)(SLCR_GPIO_RST_CTRL_ADDR) |= 1;
-	delayMs(10);
+	JbKernel::delayMs(10);
 	*(volatile unsigned int *)(SLCR_GPIO_RST_CTRL_ADDR) &= ~1;
 
 	*(volatile unsigned int *)(SLCR_LQSPI_RST_CTRL_ADDR) |= 3;
-	delayMs(10);
+	JbKernel::delayMs(10);
 	*(volatile unsigned int *)(SLCR_LQSPI_RST_CTRL_ADDR) &= ~3;
 
 	*(volatile unsigned int *)(SLCR_FPGA_RST_CTRL_ADDR) |= 0x0F;
-	delayMs(10);
+	JbKernel::delayMs(10);
 	*(volatile unsigned int *)(SLCR_FPGA_RST_CTRL_ADDR) &= ~0x0F;
 
 	*(unsigned int *)(SLCR_LOCK_ADDR) = SLCR_LOCK_KEY_VALUE;
@@ -191,96 +164,6 @@ void JbController::goToApp(uint32_t applicationAddress)
 	XDcfg_WriteReg(XPAR_XDCFG_0_BASEADDR, XDCFG_MULTIBOOT_ADDR_OFFSET,
 			applicationAddress / 0x8000);
 	HandoffExit(0);
-}
-
-
-
-void JbController::doMain(void)
-{
-	for(uint32_t i = 0; i < JBCONTROLLER_NUM_MAIN_PROCEDURES; i++) {
-		if(mainProcedures_[i])
-			mainProcedures_[i]->voidCallback(NULL,
-					mainProceduresParameters_[i]);
-		else
-			break;
-	}
-}
-
-
-
-void JbController::addMainProcedure(IVoidCallback* callback, void* parameter)
-{
-	for(uint32_t i = 0; i < JBCONTROLLER_NUM_MAIN_PROCEDURES; i++) {
-		if((mainProcedures_[i] == callback) &&
-				mainProceduresParameters_[i] == parameter){
-			break;
-		}
-		if(mainProcedures_[i] == NULL) {
-			mainProcedures_[i] = callback;
-			mainProceduresParameters_[i] = parameter;
-			break;
-		}
-	}
-}
-
-
-
-void JbController::deleteMainProcedure(IVoidCallback* callback, void* parameter)
-{
-	uint32_t index = 0;
-	for(uint32_t i = 0; i < JBCONTROLLER_NUM_MAIN_PROCEDURES; i++) {
-		if((mainProcedures_[i] == callback) &&
-				mainProceduresParameters_[i] == parameter){
-			break;
-		}
-		else
-			index++;
-	}
-	if(index == (JBCONTROLLER_NUM_MAIN_PROCEDURES-1)) {
-		if((mainProcedures_[index] == callback) &&
-				mainProceduresParameters_[index] == parameter){
-			mainProcedures_[index] = NULL;
-			mainProceduresParameters_[index] = NULL;
-		}
-	}
-	else {
-		for(uint32_t i = index; i < (JBCONTROLLER_NUM_MAIN_PROCEDURES - 1); i++) {
-			mainProcedures_[i] = mainProcedures_[i+1];
-			mainProceduresParameters_[i] = mainProceduresParameters_[i+1];
-			if(mainProcedures_[i+1] == NULL)
-				break;
-		}
-	}
-}
-
-
-
-void JbController::addMainProcedure(IVoidCallback* callback)
-{
-	addMainProcedure(callback, NULL);
-}
-
-
-
-void JbController::deleteMainProcedure(IVoidCallback* callback)
-{
-	deleteMainProcedure(callback, NULL);
-}
-
-
-
-uint32_t JbController::getHeapFree(void)
-{
-    uint32_t ret = 1024;
-    disableInterrupts();
-    void* ptr = malloc(ret);
-    while(ptr != NULL){
-        free(ptr);
-        ret += 1024;
-        ptr = malloc(ret);
-    }
-    enableInterrupts();
-    return ret;
 }
 
 }

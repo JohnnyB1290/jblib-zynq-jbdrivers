@@ -26,6 +26,7 @@
 #ifndef IRQ_CONTROLLER_HPP_
 #define IRQ_CONTROLLER_HPP_
 
+#include <forward_list>
 #include "jbkernel/jb_common.h"
 #include "xil_exception.h"
 #include "xscugic.h"
@@ -59,6 +60,12 @@ public:
     void sendSoftwareInterruptToCpu1(uint32_t interruptId);
 
 private:
+    typedef struct
+    {
+    	IIrqListener* listener = NULL;
+    	uint32_t irqNumber = 0;
+    }ListenersListItem;
+
     static void irqHandler(void* irqNumber);
     static void undefinedInterruptHandler(void* data);
     static void swiInterruptHandler(void* data);
@@ -66,10 +73,11 @@ private:
     static void dataAbortInterruptHandler(void* data);
     static void fiqInterruptHandler(void* data);
     IrqController(void);
+    void deletePeripheralIrqListener(ListenersListItem& listenerItem);
 
     static IrqController* irqController_;
-    IIrqListener* irqListeners_[IRQ_CONTROLLER_NUM_PERIPHERAL_LISTENERS];
-    uint32_t irqListenersInterruptIds_[IRQ_CONTROLLER_NUM_PERIPHERAL_LISTENERS];
+    std::forward_list<ListenersListItem> listenersList_;
+    std::forward_list<ListenersListItem> listenersDeleteList_;
     XScuGic xScuGic_;
     XScuGic_Config* xScuGicConfig_ = NULL;
 };
