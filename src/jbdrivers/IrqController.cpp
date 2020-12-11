@@ -31,6 +31,7 @@
 #ifdef USE_CONSOLE
 #include <stdio.h>
 #endif
+#include "jbdrivers/JbController.hpp"
 
 namespace jblib
 {
@@ -214,7 +215,10 @@ void IrqController::undefinedInterruptHandler(void* data)
 	#ifdef USE_CONSOLE
 	printf("IRQ Controller: UNDEFINED INTERRUPT!\r\n");
 	#endif
-	while(1);
+	while(1){
+		JbController::gpioTgl(LED0);
+		JbController::delayMs(100);
+	}
 }
 
 
@@ -224,7 +228,10 @@ void IrqController::swiInterruptHandler(void* data)
 	#ifdef USE_CONSOLE
 	printf("IRQ Controller: SWI INTERRUPT!\r\n");
 	#endif
-	while(1);
+	while(1){
+		JbController::gpioTgl(LED0);
+		JbController::delayMs(100);
+	}
 }
 
 
@@ -234,7 +241,10 @@ void IrqController::prefetchAbortInterruptHandler(void* data)
 	#ifdef USE_CONSOLE
 	printf("IRQ Controller: PREFETCH ABORT INTERRUPT!\r\n");
 	#endif
-	while(1);
+	while(1){
+		JbController::gpioTgl(LED0);
+		JbController::delayMs(100);
+	}
 }
 
 
@@ -244,7 +254,10 @@ void IrqController::dataAbortInterruptHandler(void* data)
 	#ifdef USE_CONSOLE
 	printf("IRQ Controller: DATA ABORT INTERRUPT!\r\n");
 	#endif
-	while(1);
+	while(1){
+		JbController::gpioTgl(LED0);
+		JbController::delayMs(100);
+	}
 }
 
 
@@ -254,7 +267,10 @@ void IrqController::fiqInterruptHandler(void* data)
 	#ifdef USE_CONSOLE
 	printf("IRQ Controller: FIQ INTERRUPT!\r\n");
 	#endif
-	while(1);
+	while(1){
+		JbController::gpioTgl(LED0);
+		JbController::delayMs(100);
+	}
 }
 
 
