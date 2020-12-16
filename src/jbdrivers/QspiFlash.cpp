@@ -63,6 +63,7 @@
 #define EXTADD_REG_WR			0xC5
 #define	DIE_ERASE_CMD			0xC4
 #define READ_FLAG_STATUS_CMD	0x70
+#define SOFT_RESET_CMD 			0xF0
 
 /*
  * The following constants define the offsets within a FlashBuffer data
@@ -87,6 +88,7 @@
 #define RD_CFG_SIZE			2 /* 1 byte Configuration register + RD CFG command*/
 #define WR_CFG_SIZE			3 /* WRR command + 1 byte each status and Config Reg*/
 #define DIE_ERASE_SIZE		4	/* Die Erase command + Die address */
+
 
 /*
  * The following constants specify the extra bytes which are sent to the
@@ -1189,6 +1191,14 @@ void QspiFlash::write(uint32_t address,uint8_t* buffer, uint32_t size)
 			}
 		}
 	}
+}
+
+
+
+void QspiFlash::reset()
+{
+  u8 writeData = SOFT_RESET_CMD;
+  XQspiPs_PolledTransfer(&this->xQspiPs_, &writeData, NULL, 1);
 }
 
 
