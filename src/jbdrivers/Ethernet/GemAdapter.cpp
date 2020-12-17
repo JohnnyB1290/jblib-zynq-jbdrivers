@@ -771,7 +771,7 @@ void GemAdapter::eventNegotiationCallback(void)
 						adapterSpeed = ADAPTER_SPEED_MODE_100;
 						break;
 					case 1000:
-						adapterSpeed = ADAPTER_SPEED_MODE_100;
+						adapterSpeed = ADAPTER_SPEED_MODE_1000;
 						break;
 					default:
 						adapterSpeed = ADAPTER_SPEED_MODE_100;
