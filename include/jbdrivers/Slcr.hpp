@@ -49,6 +49,7 @@
 #define SLCR_OCM_RST_CTRL_ADDR			(XPS_SYS_CTRL_BASEADDR + 0x238) /* OCM Software Reset Control */
 #define SLCR_FPGA_RST_CTRL_ADDR			(XPS_SYS_CTRL_BASEADDR + 0x240) /* FPGA Software Reset Control */
 #define SLCR_A9_CPU_RST_CTRL_ADDR		(XPS_SYS_CTRL_BASEADDR + 0x244) /* CPU Software Reset Control */
+#define SLCR_AWDT_CTRL_ADDR				(XPS_SYS_CTRL_BASEADDR + 0x24C) /* CPU Software Reset Control */
 #define SLCR_REBOOT_STATUS_ADDR			(XPS_SYS_CTRL_BASEADDR + 0x258) /* PS Reboot Status */
 
 #define SLCR_CAN_CLK_CTRL_ADDR			(XPS_SYS_CTRL_BASEADDR + 0x15C) /* CAN Ref Clock Control  */

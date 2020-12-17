@@ -63,32 +63,45 @@ Wdt::Wdt(void) : IIrqListener(), IVoidCallback()
 
 
 
-void Wdt::initialize(uint16_t reloadTimeS)
+void Wdt::initialize(uint16_t reloadTimeS, WdMode_t mode)
 {
 	if(!this->isInitialized_) {
 		XScuWdt_Config* config = XScuWdt_LookupConfig(WDT_DEVICE_ID);
 		XScuWdt_CfgInitialize((XScuWdt*)&this->xScuWdt_, config,
 				config->BaseAddr);
 		this->xScuWdtPtr_ = (XScuWdt*)&this->xScuWdt_;
-		XScuWdt_SetTimerMode(this->xScuWdtPtr_);
-		this->isLastResetWasWdt_ = ((XScuWdt_ReadReg(this->xScuWdt_.Config.BaseAddr,
-				XSCUWDT_ISR_OFFSET) & XSCUWDT_ISR_EVENT_FLAG_MASK) ==
-						XSCUWDT_ISR_EVENT_FLAG_MASK);
-		XScuWdt_WriteReg(this->xScuWdt_.Config.BaseAddr, XSCUWDT_ISR_OFFSET,
-				XSCUWDT_ISR_EVENT_FLAG_MASK);
-		uint32_t reg = XScuWdt_ReadReg(this->xScuWdt_.Config.BaseAddr,
-				XSCUWDT_CONTROL_OFFSET);
-		XScuWdt_SetControlReg(this->xScuWdtPtr_,
-				reg |XSCUWDT_CONTROL_IT_ENABLE_MASK);
+
+		this->mode_ = mode;
+		if(this->mode_ == MODE_TIMER){
+			XScuWdt_SetTimerMode(this->xScuWdtPtr_);
+			this->isLastResetWasWdt_ = ((XScuWdt_ReadReg(this->xScuWdt_.Config.BaseAddr,
+					XSCUWDT_ISR_OFFSET) & XSCUWDT_ISR_EVENT_FLAG_MASK) ==
+							XSCUWDT_ISR_EVENT_FLAG_MASK);
+			XScuWdt_WriteReg(this->xScuWdt_.Config.BaseAddr, XSCUWDT_ISR_OFFSET,
+							XSCUWDT_ISR_EVENT_FLAG_MASK);
+			uint32_t reg = XScuWdt_ReadReg(this->xScuWdt_.Config.BaseAddr,
+							XSCUWDT_CONTROL_OFFSET);
+			XScuWdt_SetControlReg(this->xScuWdtPtr_, reg |XSCUWDT_CONTROL_IT_ENABLE_MASK);
+		}
+		else{
+			XScuWdt_SetWdMode(this->xScuWdtPtr_);
+			this->isLastResetWasWdt_ = XScuWdt_ReadReg(this->xScuWdt_.Config.BaseAddr,
+					XSCUWDT_RST_STS_OFFSET) & XSCUWDT_RST_STS_RESET_FLAG_MASK;
+			XScuWdt_WriteReg(this->xScuWdt_.Config.BaseAddr, XSCUWDT_RST_STS_OFFSET,
+					XSCUWDT_RST_STS_RESET_FLAG_MASK);
+		}
+
 		uint32_t load = XPAR_PS7_CORTEXA9_0_CPU_CLK_FREQ_HZ >> 1;
 		load = reloadTimeS * load;
 		XScuWdt_LoadWdt(this->xScuWdtPtr_, load);
 
-		IrqController::getIrqController()->addPeripheralIrqListener(this,
-				WDT_INTERRUPT_ID);
-		IrqController::getIrqController()->setPriority(WDT_INTERRUPT_ID,
-				WDT_INTERRUPT_PRIORITY);
-		IrqController::getIrqController()->enableInterrupt(WDT_INTERRUPT_ID);
+		if(this->mode_ == MODE_TIMER){
+			IrqController::getIrqController()->addPeripheralIrqListener(this,
+					WDT_INTERRUPT_ID);
+			IrqController::getIrqController()->setPriority(WDT_INTERRUPT_ID,
+					WDT_INTERRUPT_PRIORITY);
+			IrqController::getIrqController()->enableInterrupt(WDT_INTERRUPT_ID);
+		}
 		this->isInitialized_ = true;
 	}
 }

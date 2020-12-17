@@ -41,8 +41,12 @@ using namespace jbkernel;
 class Wdt :protected IIrqListener, public IVoidCallback
 {
 public:
+	typedef enum{
+		MODE_WD,
+		MODE_TIMER
+	}WdMode_t;
 	static Wdt* getWdt(void);
-	void initialize(uint16_t reloadTimeS);
+	void initialize(uint16_t reloadTimeS, WdMode_t mode = MODE_TIMER);
 	void start(void);
 	void stop(void);
 	void reset(void);
@@ -58,6 +62,7 @@ private:
 	XScuWdt* xScuWdtPtr_ = NULL;
 	bool isLastResetWasWdt_ = false;
 	bool isInitialized_ = false;
+	WdMode_t mode_ = MODE_WD;
 };
 
 }
