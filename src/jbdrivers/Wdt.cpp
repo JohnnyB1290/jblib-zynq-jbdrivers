@@ -124,6 +124,9 @@ void Wdt::stop(void)
 	#if USE_CONSOLE
 	printf("WatchDog Timer stop\r\n");
 	#endif
+	if(this->mode_ == MODE_WD){
+		XScuWdt_SetTimerMode(this->xScuWdtPtr_);
+	}
 	XScuWdt_Stop(this->xScuWdtPtr_);
 }
 
