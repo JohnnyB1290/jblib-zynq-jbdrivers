@@ -170,14 +170,12 @@ void NvmParameters::setParameter(uint8_t type, uint8_t uid,
 		uint8_t* data, uint8_t dataSize)
 {
 	NvmParametersCell_t tempCell;
-	memset(&tempCell, 0, parametersCellSize_);
-
 	tempCell.uid = uid;
 	tempCell.groupId = groupId;
 	tempCell.type = type;
 	tempCell.dataSize = (NVM_PARAMETERS_CELL_DATA_SIZE <= dataSize) ?
 			NVM_PARAMETERS_CELL_DATA_SIZE : dataSize;
-	strncpy(tempCell.description, description, NVM_PARAMETERS_CELL_DESCRIPTION_SIZE);
+	strncpy(tempCell.description, description, NVM_PARAMETERS_CELL_DESCRIPTION_SIZE - 1);
 	memcpy(tempCell.data, data, tempCell.dataSize);
 	tempCell.descriptionSize = strlen(tempCell.description);
 	this->setParameter(&tempCell);
@@ -215,7 +213,6 @@ void NvmParameters::eraseAllParameters(void)
 {
 	disableInterrupts();
 	NvmParametersHeader_t tempHeader;
-	memset(&tempHeader, 0, parametersHeaderSize_);
 	tempHeader.magic = NVM_PARAMETERS_MAGIC;
 	tempHeader.size = 0;
 	memcpy((void*)parametersHeader_, (void*)&tempHeader, parametersHeaderSize_);

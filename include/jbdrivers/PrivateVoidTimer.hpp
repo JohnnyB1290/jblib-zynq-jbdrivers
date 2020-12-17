@@ -57,7 +57,7 @@ private:
 	virtual void irqHandler(uint32_t irqNumber);
 
 	static PrivateVoidTimer* privateVoidTimer_;
-	XScuTimer xScuTimer_;
+	XScuTimer xScuTimer_{};
 	IVoidCallback* callback_ = NULL;
 };
 

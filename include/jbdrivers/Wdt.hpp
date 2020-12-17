@@ -58,7 +58,7 @@ private:
 	virtual void irqHandler(uint32_t irqNumber);
 
 	static Wdt* wdt_;
-	XScuWdt xScuWdt_;		/* Cortex SCU Private WatchDog Timer Instance */
+	XScuWdt xScuWdt_{};		/* Cortex SCU Private WatchDog Timer Instance */
 	XScuWdt* xScuWdtPtr_ = NULL;
 	bool isLastResetWasWdt_ = false;
 	bool isInitialized_ = false;

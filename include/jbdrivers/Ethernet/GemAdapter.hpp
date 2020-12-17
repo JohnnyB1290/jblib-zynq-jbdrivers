@@ -109,9 +109,9 @@ private:
 	static uint8_t macs_[GEM_ADAPTER_NUM_GEM][6];
 	uint8_t number_ = 0;
 	uint8_t isSuccessfulInitialized_ = 0;
-	GemTxQueue_t txQueue_;
+	GemTxQueue_t txQueue_{};
 	uint16_t txFreeLine_ = 0;
-	GemRxQueue_t rxQueue_;
+	GemRxQueue_t rxQueue_{};
 	u16 numRxBd_ = 0;
 	XEmacPs emacPs_;
 	uint8_t isSuccessfulAutonegotiation_ = 0;
