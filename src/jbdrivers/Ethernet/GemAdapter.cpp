@@ -177,6 +177,19 @@ GemAdapter::GemAdapter(uint8_t number, MdioController* mdioController,
 	}
 	XEmacPs_SetMdioDivisor(&this->emacPs_, MDC_DIV_224);
 	sleep(1);
+
+	/*
+	 * The BDs need to be allocated in uncached memory. Hence the 1 MB
+	 * address range that starts at address 0xFF00000 is made uncached.
+	 */
+	if(this->number_ == 0) {
+		Xil_SetTlbAttributes(GEM_ADAPTER_0_RX_BD_LIST_START_ADDRESS, STRONG_ORDERED);
+		Xil_SetTlbAttributes(GEM_ADAPTER_0_TX_BD_LIST_START_ADDRESS, STRONG_ORDERED);
+	}
+	else if(this->number_ == 1) {
+		Xil_SetTlbAttributes(GEM_ADAPTER_1_RX_BD_LIST_START_ADDRESS, STRONG_ORDERED);
+		Xil_SetTlbAttributes(GEM_ADAPTER_1_TX_BD_LIST_START_ADDRESS, STRONG_ORDERED);
+	}
 }
 
 
@@ -322,18 +335,6 @@ void GemAdapter::initialize(void)
 	if(status != XST_SUCCESS)
 		printf("GEM Adapter Error: setting up RxBD space, BdRingClone\r\n");
 	#endif
-	/*
-	 * The BDs need to be allocated in uncached memory. Hence the 1 MB
-	 * address range that starts at address 0xFF00000 is made uncached.
-	 */
-	if(this->number_ == 0) {
-		Xil_SetTlbAttributes(GEM_ADAPTER_0_RX_BD_LIST_START_ADDRESS, STRONG_ORDERED);
-		Xil_SetTlbAttributes(GEM_ADAPTER_0_TX_BD_LIST_START_ADDRESS, STRONG_ORDERED);
-	}
-	else if(this->number_ == 1) {
-		Xil_SetTlbAttributes(GEM_ADAPTER_1_RX_BD_LIST_START_ADDRESS, STRONG_ORDERED);
-		Xil_SetTlbAttributes(GEM_ADAPTER_1_TX_BD_LIST_START_ADDRESS, STRONG_ORDERED);
-	}
 
 	XEmacPs_BdClear(&bdTemplate);
 	XEmacPs_BdSetStatus(&bdTemplate, XEMACPS_TXBUF_USED_MASK);
@@ -360,21 +361,6 @@ void GemAdapter::initialize(void)
 		printf("GEM Adapter Error: setting up TxBD space, BdRingClone\r\n");
 	#endif
 
-	if(this->number_ == 0) {
-		IrqController::getIrqController()->addPeripheralIrqListener(this,
-				EMACPS_0_INTR_ID);
-		IrqController::getIrqController()->setPriority(EMACPS_0_INTR_ID,
-				GEM_ADAPTER_0_INTERRUPT_PRIORITY);
-		IrqController::getIrqController()->enableInterrupt(EMACPS_0_INTR_ID);
-	}
-	else if(this->number_ == 1) {
-		IrqController::getIrqController()->addPeripheralIrqListener(this,
-				EMACPS_1_INTR_ID);
-		IrqController::getIrqController()->setPriority(EMACPS_1_INTR_ID,
-				GEM_ADAPTER_1_INTERRUPT_PRIORITY);
-		IrqController::getIrqController()->enableInterrupt(EMACPS_1_INTR_ID);
-	}
-
 	for(uint32_t i = 0; i < this->numRxBd_; i++) {
 		Xil_DCacheFlushRange((UINTPTR)&(this->rxQueue_.frames[i]),
 				sizeof(EthernetFrame));
@@ -399,6 +385,21 @@ void GemAdapter::initialize(void)
 	XEmacPs_SetQueuePtr(&this->emacPs_, (&this->emacPs_)->TxBdRing.BaseBdAddr, 0,
 			XEMACPS_SEND);
 	XEmacPs_Start(&this->emacPs_);
+
+	if(this->number_ == 0) {
+		IrqController::getIrqController()->addPeripheralIrqListener(this,
+				EMACPS_0_INTR_ID);
+		IrqController::getIrqController()->setPriority(EMACPS_0_INTR_ID,
+				GEM_ADAPTER_0_INTERRUPT_PRIORITY);
+		IrqController::getIrqController()->enableInterrupt(EMACPS_0_INTR_ID);
+	}
+	else if(this->number_ == 1) {
+		IrqController::getIrqController()->addPeripheralIrqListener(this,
+				EMACPS_1_INTR_ID);
+		IrqController::getIrqController()->setPriority(EMACPS_1_INTR_ID,
+				GEM_ADAPTER_1_INTERRUPT_PRIORITY);
+		IrqController::getIrqController()->enableInterrupt(EMACPS_1_INTR_ID);
+	}
 
 	this->isSuccessfulInitialized_ = 1;
 
